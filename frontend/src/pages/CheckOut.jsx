@@ -10,7 +10,6 @@ function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cod");
 
   const totalAmount = cart.reduce((total, item) => total + item.price, 0);
 
@@ -20,15 +19,15 @@ function Checkout() {
       return;
     }
 
-    if (!address) {
+    if (!address.trim()) {
       alert("Please Enter Address");
       return;
     }
 
     try {
       setLoading(true);
-
       const user = auth.currentUser;
+
       if (!user) {
         alert("Please Login");
         navigate("/login");
@@ -37,111 +36,70 @@ function Checkout() {
 
       const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
 
-      if (paymentMethod === "cod") {
-        const orderData = {
-          customerId: user.uid,
-          customerName: user.displayName || "Customer",
-          customerEmail: user.email,
-          items: cart.map((item) => item._id),
-          totalAmount,
-          status: "pending",
-          deliveryAddress: address,
-          paymentDetails: {
-            method: "COD",
-            status: "pending",
-          },
-        };
-
-        await axios.post(`${apiURL}/api/orders`, orderData);
-
-        try {
-          await axios.put(`${apiURL}/api/users/address`, {
-            address,
-            uid: user.uid,
-          });
-        } catch (err) {
-          console.log("Address save failed", err);
-        }
-
-        alert("Order Placed Successfully! 🍕");
-        clearCart();
-        navigate("/");
-      } else {
-        const razorpayOrderRes = await axios.post(
-          `${apiURL}/api/orders/create-razorpay-order`,
-          { amount: totalAmount }
-        );
-
-        const { id, amount, currency } = razorpayOrderRes.data;
-
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: amount,
-          currency: currency,
-          name: "Dominoze Bizza",
-          description: "Payment for your order",
-          order_id: id,
-
-          handler: async function (response) {
-            try {
-              const orderData = {
-                customerId: user.uid,
-                customerName: user.displayName || "Customer",
-                customerEmail: user.email,
-                items: cart.map((item) => item._id),
-                totalAmount,
-                status: "pending",
-                deliveryAddress: address,
-                paymentDetails: {
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_signature: response.razorpay_signature,
-                },
-              };
-
-              await axios.post(`${apiURL}/api/orders`, orderData);
-
-              try {
-                await axios.put(`${apiURL}/api/users/address`, {
-                  address,
-                  uid: user.uid,
-                });
-              } catch (err) {
-                console.log("Address save failed", err);
-              }
-
-              alert("Payment Successful & Order Placed! 🍕");
-              clearCart();
-              navigate("/");
-            } catch (error) {
-              console.log(error);
-              alert("Failed To Complete Order Placement");
-            }
-          },
-
-          prefill: {
-            name: user.displayName || "Customer",
-            email: user.email || "test@example.com",
-            contact: "9999999999",
-          },
-
-          theme: { color: "#C0392B" },
-        };
-
-        const rzp = new window.Razorpay(options);
-
-        rzp.on("payment.failed", function (response) {
-          alert("Payment Failed: " + response.error.description);
-        });
-
-        rzp.open();
-      }
-    } catch (error) {
-      console.log(error);
-      alert(
-        "Failed To Place Order: " +
-          (error.response?.data?.message || error.message)
+      // Step 1: Create the transaction block token inside Razorpay systems via backend
+      const razorpayOrderRes = await axios.post(
+        `${apiURL}/api/orders/create-razorpay-order`,
+        { amount: totalAmount }
       );
+
+      const { id, amount, currency } = razorpayOrderRes.data;
+
+      // Step 2: Open up the interactive overlay modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount,
+        currency,
+        name: "Dominoze Bizza",
+        description: "Pizza Order Payment",
+        order_id: id,
+
+        handler: async function (response) {
+          try {
+            // Pack customer identity, order cart contents, and authentication signatures
+            const completeOrderData = {
+              customerId: user.uid,
+              customerName: user.displayName || "Customer",
+              customerEmail: user.email,
+              items: cart.map((item) => item._id),
+              totalAmount,
+              deliveryAddress: address,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            };
+
+            // Step 3: Verify security token strings and save directly on server database
+            await axios.post(`${apiURL}/api/orders/verify-and-create`, completeOrderData);
+
+            alert("Payment Successful & Order Placed! 🍕");
+            clearCart();
+            navigate("/");
+          } catch (err) {
+            console.error("Order processing failure:", err);
+            alert(err.response?.data?.message || "Order verification or saving failed.");
+          }
+        },
+
+        prefill: {
+          name: user.displayName || "Customer",
+          email: user.email || "customer@gmail.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#C0392B",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on("payment.failed", function (response) {
+        alert("Payment Failed: " + response.error.description);
+      });
+
+      rzp.open();
+    } catch (error) {
+      console.error("Initialization failure:", error);
+      alert("Failed To Place Order: " + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -260,40 +218,6 @@ function Checkout() {
             className="w-full rounded-xl p-4 text-sm outline-none resize-none"
             style={{ border: "1.5px solid #E8D5B0", backgroundColor: "#FEFAF4" }}
           />
-        </div>
-
-        {/* ===== PAYMENT METHOD ===== */}
-        <div
-          className="rounded-2xl border p-6 mb-7"
-          style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
-        >
-          <h2 className="font-bold mb-4">Payment Method</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("cod")}
-              className="py-3 px-4 rounded-xl border font-bold text-sm transition-all cursor-pointer animate-none"
-              style={{
-                borderColor: paymentMethod === "cod" ? "#C0392B" : "#EDE0CC",
-                backgroundColor: paymentMethod === "cod" ? "#FFF5F3" : "#FFFFFF",
-                color: paymentMethod === "cod" ? "#C0392B" : "#7A6354",
-              }}
-            >
-              💵 Cash on Delivery
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("online")}
-              className="py-3 px-4 rounded-xl border font-bold text-sm transition-all cursor-pointer animate-none"
-              style={{
-                borderColor: paymentMethod === "online" ? "#C0392B" : "#EDE0CC",
-                backgroundColor: paymentMethod === "online" ? "#FFF5F3" : "#FFFFFF",
-                color: paymentMethod === "online" ? "#C0392B" : "#7A6354",
-              }}
-            >
-              💳 Online Payment
-            </button>
-          </div>
         </div>
 
         {/* ===== PLACE ORDER BUTTON ===== */}

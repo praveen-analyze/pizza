@@ -45,7 +45,7 @@ function Menu() {
   }, []);
 
   const filtered = pizzas.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    (p.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const categoryColor = {
@@ -145,8 +145,8 @@ function Menu() {
                   {/* Image */}
                   <div className="relative overflow-hidden h-52" style={{ backgroundColor: "#F5EFE6" }}>
                     <img
-                      src={`/${pizza.image}`}
-                      alt={pizza.name}
+                     src={pizza.imageUrl}
+                     alt={pizza.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     {pizza.category && cat.bg && (

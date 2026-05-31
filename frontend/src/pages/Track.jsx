@@ -167,7 +167,7 @@ function Track() {
                             >
                               {item.image && (
                                 <img
-                                  src={`/${item.image}`}
+                                  src={item.imageUrl}
                                   alt={item.name}
                                   className="w-6 h-6 rounded-lg object-cover"
                                 />

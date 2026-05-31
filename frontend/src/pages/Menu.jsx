@@ -21,7 +21,7 @@ function Menu() {
     const getPizzas = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas`);
         setPizzas(res.data);
       } catch (error) {
         console.log(error);

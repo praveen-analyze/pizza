@@ -25,7 +25,7 @@ function Checkout() {
       const token = await user.getIdToken();
 
       const razorpayOrderRes = await axios.post(
-        "https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders/create-razorpay-order",
+        `${import.meta.env.VITE_API_URL}/api/pizzas/api/orders/create-razorpay-order`,
         { amount: totalAmount },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -57,14 +57,14 @@ function Checkout() {
             };
 
             const res = await axios.post(
-              "http://localhost:3000/api/orders",
+              '${import.meta.env.VITE_API_URL}/api/orders',
               orderData,
               { headers: { Authorization: `Bearer ${token}` } }
             );
 
             try {
               await axios.put(
-                "http://localhost:3000/api/users/address",
+                `${import.meta.env.VITE_API_URL}/api/users/address`,
                 { address },
                 { headers: { Authorization: `Bearer ${token}` } }
               );

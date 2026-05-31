@@ -37,7 +37,7 @@ function Checkout() {
 
       // FIX 1: Force refresh token to avoid expiry issues
       const token = await user.getIdToken(true);
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
 
       if (paymentMethod === "cod") {
         const orderData = {

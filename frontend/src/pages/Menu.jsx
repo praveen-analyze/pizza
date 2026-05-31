@@ -19,7 +19,7 @@ function Menu() {
 
   useEffect(() => {
     const getPizzas = async () => {
-      const baseURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const baseURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
 
       try {
         setLoading(true);

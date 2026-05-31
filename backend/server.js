@@ -16,6 +16,11 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("DB Connected"))
   .catch((err) => console.log(err));
 
+// Root Route
+app.get("/", (req, res) => {
+  res.send("Pizza API is running 🚀");
+});
+
 app.use("/api/pizzas", pizzaRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);

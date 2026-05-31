@@ -1,23 +1,19 @@
 const express = require("express");
 const User = require("../models/User");
-const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
-const isAdmin = require("../middleware/isAdmin");
 
 const router = express.Router();
 
-// Create or Update User (Called after Firebase Login/Signup)
-router.post("/", verifyFirebaseToken, async (req, res) => {
+// Create or Update User
+router.post("/", async (req, res) => {
   try {
     const { uid, name, email, phone } = req.body;
     let user = await User.findOne({ uid });
-
     if (user) {
       if (name) user.name = name;
       if (phone) user.phone = phone;
       await user.save();
       return res.status(200).json(user);
     }
-
     user = new User({ uid, name, email, phone });
     await user.save();
     res.status(201).json(user);
@@ -27,9 +23,10 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
 });
 
 // Get User Profile
-router.get("/profile", verifyFirebaseToken, async (req, res) => {
+router.get("/profile", async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.user.uid });
+    const { uid } = req.query;
+    const user = await User.findOne({ uid });
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json(user);
   } catch (error) {
@@ -38,12 +35,12 @@ router.get("/profile", verifyFirebaseToken, async (req, res) => {
 });
 
 // Update User Address
-router.put("/address", verifyFirebaseToken, async (req, res) => {
+router.put("/address", async (req, res) => {
   try {
-    const { address } = req.body;
-    const user = await User.findOne({ uid: req.user.uid });
+    const { address, uid } = req.body;
+    if (!uid) return res.status(400).json({ message: "uid is required" });
+    const user = await User.findOne({ uid });
     if (!user) return res.status(404).json({ message: "User not found" });
-
     if (!user.addresses.includes(address)) {
       user.addresses.push(address);
       await user.save();
@@ -54,8 +51,8 @@ router.put("/address", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// Get all users (Admin only)
-router.get("/", verifyFirebaseToken, isAdmin, async (req, res) => {
+// Get all users
+router.get("/", async (req, res) => {
   try {
     const users = await User.find();
     res.status(200).json(users);

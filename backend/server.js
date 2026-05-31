@@ -19,11 +19,10 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Root Route
 app.get("/", (req, res) => {
-  res.send("Pizza API is running 🚀");
+  res.send("Pizza API is running...");
 });
 app.use("/api/orders", orderRoutes);
 app.use("/api/pizzas", pizzaRoutes);
-
 app.use("/api/users", userRoutes);
 
 const PORT = process.env.PORT || 3000;

@@ -17,23 +17,19 @@ const STEP_LABELS = ["Ordered", "Preparing", "On the Way", "Delivered"];
 function Track() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(""); // Track state error messages
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) { 
-        setLoading(false); 
-        return; 
+      if (!user) {
+        setLoading(false);
+        return;
       }
       try {
         setLoading(true);
         setError("");
-        const token = await user.getIdToken();
-        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
-        const res = await axios.get(
-          `${apiURL}/api/orders/my/${user.uid}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
+        const res = await axios.get(`${apiURL}/api/orders/my/${user.uid}`);
         setOrders(res.data);
       } catch (error) {
         console.error("Tracking Fetch Error:", error);
@@ -107,7 +103,7 @@ function Track() {
           </div>
         )}
 
-        {/* Order History Dashboard */}
+        {/* Order History */}
         {!loading && !error && (
           <div className="space-y-5">
             {orders.map((order, idx) => {
@@ -153,7 +149,6 @@ function Track() {
 
                   {/* Order Body */}
                   <div className="px-6 py-5">
-                    {/* Items */}
                     {order.items && order.items.length > 0 && (
                       <div className="mb-5">
                         <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#A89585" }}>Items</p>
@@ -200,7 +195,7 @@ function Track() {
                       </div>
                     </div>
 
-                    {/* Progress tracking matrix */}
+                    {/* Progress tracking */}
                     <div>
                       <div className="flex items-center">
                         {STEPS.map((step, i) => {

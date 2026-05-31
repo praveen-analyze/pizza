@@ -3,8 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
-const pizzaRoutes = require("./routes/pizzaRoutes");
+
 const orderRoutes = require("./routes/orderRoutes");
+const pizzaRoutes = require("./routes/pizzaRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 const app = express();
@@ -20,9 +21,9 @@ mongoose.connect(process.env.MONGO_URI)
 app.get("/", (req, res) => {
   res.send("Pizza API is running 🚀");
 });
-
-app.use("/api/pizzas", pizzaRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/pizzas", pizzaRoutes);
+
 app.use("/api/users", userRoutes);
 
 const PORT = process.env.PORT || 3000;

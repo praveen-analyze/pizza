@@ -29,10 +29,9 @@ function Track() {
         setLoading(true);
         setError("");
         const token = await user.getIdToken();
-        
-        // FIXED: Cleaned up duplicated '/api/pizzas' segment
+        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/orders/my/${user.uid}`,
+          `${apiURL}/api/orders/my/${user.uid}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setOrders(res.data);
@@ -165,9 +164,9 @@ function Track() {
                               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
                               style={{ backgroundColor: "#FAF5EE", border: "1px solid #EDE0CC" }}
                             >
-                              {item.image && (
+                              {(item.imageUrl || item.image) && (
                                 <img
-                                  src={item.imageUrl}
+                                  src={item.imageUrl || (item.image ? (item.image.startsWith("http") ? item.image : "/" + item.image) : "/pizza.jpg")}
                                   alt={item.name}
                                   className="w-6 h-6 rounded-lg object-cover"
                                 />

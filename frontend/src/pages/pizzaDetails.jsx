@@ -17,8 +17,8 @@ function PizzaDetails() {
       try {
         setLoading(true);
         setError("");
-        // FIXED: Added missing forward slash after VITE_API_URL
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/${id}`);
+        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+        const res = await axios.get(`${apiURL}/api/pizzas/${id}`);
         setPizza(res.data);
       } catch (err) {
         console.error("Fetch Pizza Detail Error:", err);
@@ -97,9 +97,9 @@ function PizzaDetails() {
         >
           {/* Image Context Container */}
           <div className="md:w-1/2 h-72 md:h-auto overflow-hidden" style={{ backgroundColor: "#F5EFE6" }}>
-            {pizza.image ? (
+            {(pizza.imageUrl || pizza.image) ? (
               <img
-                src={`/${pizza.image}`}
+                src={pizza.imageUrl || (pizza.image ? (pizza.image.startsWith("http") ? pizza.image : "/" + pizza.image) : "/pizza.jpg")}
                 alt={pizza.name}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />

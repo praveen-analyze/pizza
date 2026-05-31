@@ -37,8 +37,8 @@ function Admin() {
     if (!auth.currentUser) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      // FIXED: Adjusted path to standard global orders route
-      const res   = await axios.get(`${import.meta.env.VITE_API_URL}/api/orders`, {
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const res   = await axios.get(`${apiURL}/api/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data);
@@ -56,8 +56,8 @@ function Admin() {
   const getPizzas = useCallback(async () => {
     try {
       setPizzasLoading(true);
-      // FIXED: Cleared redundant middleware route segment
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas`);
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const res = await axios.get(`${apiURL}/api/pizzas`);
       setPizzas(res.data);
     } catch (err) {
       console.log(err);
@@ -75,8 +75,8 @@ function Admin() {
     try {
       setCustomersLoading(true);
       const token = await auth.currentUser.getIdToken();
-      // FIXED: Adjusted path to standard users administration route
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const res = await axios.get(`${apiURL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCustomers(res.data);
@@ -97,9 +97,9 @@ function Admin() {
     if (!auth.currentUser) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      // FIXED: Adjusted target endpoint formatting
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`,
+        `${apiURL}/api/orders/${orderId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -114,8 +114,8 @@ function Admin() {
     if (!window.confirm("Delete this order?")) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      // FIXED: Cleared base route string syntax
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}`, {
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      await axios.delete(`${apiURL}/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       getOrders();
@@ -138,8 +138,8 @@ function Admin() {
     }
     try {
       setAddLoading(true);
-      // FIXED: Adjusted collection targeted endpoint configuration
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas`, {
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      await axios.post(`${apiURL}/api/pizzas`, {
         ...pizza,
         price: Number(pizza.price),
       });
@@ -157,8 +157,8 @@ function Admin() {
   const deletePizza = async (id) => {
     if (!window.confirm("Delete this pizza?")) return;
     try {
-      // FIXED: Swapped out duplicated nested directory path configuration
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pizzas/${id}`);
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      await axios.delete(`${apiURL}/api/pizzas/${id}`);
       getPizzas();
     } catch (err) {
       console.log(err);
@@ -168,8 +168,8 @@ function Admin() {
   const cleanupDuplicates = async () => {
     if (!window.confirm("Do you want to automatically clean up all duplicate pizzas in the database? This keeps only the first entry of each unique pizza name.")) return;
     try {
-      // FIXED: Configured database cleanup subpath destination address correctly
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas/cleanup`);
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const res = await axios.post(`${apiURL}/api/pizzas/cleanup`);
       alert(res.data.message);
       getPizzas();
     } catch (err) {
@@ -333,8 +333,8 @@ function Admin() {
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
                                 style={{ backgroundColor: "#FAF5EE", border: "1px solid #EDE0CC" }}
                               >
-                                {item.image && (
-                                  <img src={`/${item.image}`} alt={item.name} className="w-6 h-6 rounded-lg object-cover" />
+                                {(item.imageUrl || item.image) && (
+                                  <img src={item.imageUrl || (item.image ? (item.image.startsWith("http") ? item.image : "/" + item.image) : "/pizza.jpg")} alt={item.name} className="w-6 h-6 rounded-lg object-cover" />
                                 )}
                                 <span className="text-xs font-semibold" style={{ color: "#3D2B1F" }}>
                                   {item.name || "Item"}
@@ -454,8 +454,8 @@ function Admin() {
                       Preview
                     </p>
                     <div className="flex items-center gap-3">
-                      {pizza.image && (
-                        <img src={`/${pizza.image}`} alt={pizza.name}
+                      {(pizza.imageUrl || pizza.image) && (
+                        <img src={pizza.imageUrl || (pizza.image ? (pizza.image.startsWith("http") ? pizza.image : "/" + pizza.image) : "/pizza.jpg")} alt={pizza.name}
                           className="w-12 h-12 rounded-xl object-cover"
                           style={{ border: "1px solid #EDE0CC" }} />
                       )}
@@ -559,9 +559,9 @@ function Admin() {
                     onMouseLeave={e => e.currentTarget.style.boxShadow = "0 2px 8px rgba(26,18,8,0.05)"}
                   >
                     <div className="relative h-40 overflow-hidden" style={{ backgroundColor: "#F5EFE6" }}>
-                      {p.image ? (
+                      {(p.imageUrl || p.image) ? (
                         <img
-                          src={`/${p.image}`}
+                          src={p.imageUrl || (p.image ? (p.image.startsWith("http") ? p.image : "/" + p.image) : "/pizza.jpg")}
                           alt={p.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
                         />

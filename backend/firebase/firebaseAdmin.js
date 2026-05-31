@@ -10,5 +10,6 @@ admin.initializeApp({
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     privateKey: formattedPrivateKey, // <-- Use the newly formatted key variable here
+    
   }),
 });

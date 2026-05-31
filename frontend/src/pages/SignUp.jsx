@@ -48,7 +48,8 @@ function SignUp() {
       setLoading(true);
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const token = await res.user.getIdToken();
-      await axios.post('https://pizza-4-d5q4.onrender.com/api/pizzas/api/users',
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      await axios.post(`${apiURL}/api/users`,
         { uid: res.user.uid, name, email, phone },
         { headers: { Authorization: `Bearer ${token}` } }
       );

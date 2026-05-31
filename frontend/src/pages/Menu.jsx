@@ -19,19 +19,10 @@ function Menu() {
 
   useEffect(() => {
     const getPizzas = async () => {
-      // Grab the URL from env variables
-      const baseURL = import.meta.env.VITE_API_URL;
-
-      if (!baseURL) {
-        console.error("VITE_API_URL is missing from environment variables!");
-        setError("Configuration error: Backend URL is not defined.");
-        setLoading(false);
-        return;
-      }
+      const baseURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
 
       try {
         setLoading(true);
-        // FIXED: Removed the duplicated '/api/pizzas'
         const res = await axios.get(`${baseURL}/api/pizzas`);
         setPizzas(res.data);
       } catch (error) {
@@ -145,8 +136,8 @@ function Menu() {
                   {/* Image */}
                   <div className="relative overflow-hidden h-52" style={{ backgroundColor: "#F5EFE6" }}>
                     <img
-                     src={pizza.imageUrl}
-                     alt={pizza.name}
+                      src={pizza.imageUrl || (pizza.image ? (pizza.image.startsWith("http") ? pizza.image : "/" + pizza.image) : "/pizza.jpg")}
+                      alt={pizza.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     {pizza.category && cat.bg && (

@@ -10,6 +10,7 @@ function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cod");
 
   const totalAmount = cart.reduce((total, item) => total + item.price, 0);
 
@@ -34,95 +35,120 @@ function Checkout() {
         return;
       }
 
-      const token = await user.getIdToken();
+      // FIX 1: Force refresh token to avoid expiry issues
+      const token = await user.getIdToken(true);
+      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
 
-      // ✅ FIXED API PATH
-      const razorpayOrderRes = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/orders/create-razorpay-order`,
-        { amount: totalAmount },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      if (paymentMethod === "cod") {
+        const orderData = {
+          customerId: user.uid,
+          customerName: user.displayName || "Customer",
+          customerEmail: user.email,
+          items: cart.map((item) => item._id),
+          totalAmount,
+          status: "pending",
+          deliveryAddress: address,
+          paymentDetails: {
+            method: "COD",
+            status: "pending",
           },
+        };
+
+        await axios.post(`${apiURL}/api/orders`, orderData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        try {
+          await axios.put(
+            `${apiURL}/api/users/address`,
+            { address },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (err) {
+          console.log("Address save failed", err);
         }
-      );
 
-      const { id, amount, currency } = razorpayOrderRes.data;
+        alert("Order Placed Successfully! 🍕");
+        clearCart();
+        navigate("/");
+      } else {
+        const razorpayOrderRes = await axios.post(
+          `${apiURL}/api/orders/create-razorpay-order`,
+          { amount: totalAmount },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-      const options = {
-        key: "rzp_test_SvaPlpRyqzFg9N",
-        amount: amount,
-        currency: currency,
-        name: "Dominoze Bizza",
-        description: "Payment for your order",
-        order_id: id,
+        const { id, amount, currency } = razorpayOrderRes.data;
 
-        handler: async function (response) {
-          try {
-            const orderData = {
-              customerId: user.uid,
-              customerName: user.displayName || "Customer",
-              customerEmail: user.email,
-              items: cart.map((item) => item._id),
-              totalAmount,
-              status: "pending",
-              deliveryAddress: address,
-              paymentDetails: {
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-              },
-            };
+        const options = {
+          // FIX 2: Removed old hardcoded key fallback
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: amount,
+          currency: currency,
+          name: "Dominoze Bizza",
+          description: "Payment for your order",
+          order_id: id,
 
-            await axios.post(
-              `${import.meta.env.VITE_API_URL}/api/orders`,
-              orderData,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-
+          handler: async function (response) {
             try {
-              await axios.put(
-                `${import.meta.env.VITE_API_URL}/api/users/address`,
-                { address },
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                }
-              );
-            } catch (err) {
-              console.log("Address save failed", err);
+              // FIX 3: Fresh token inside handler (Razorpay modal can take time)
+              const freshToken = await user.getIdToken(true);
+
+              const orderData = {
+                customerId: user.uid,
+                customerName: user.displayName || "Customer",
+                customerEmail: user.email,
+                items: cart.map((item) => item._id),
+                totalAmount,
+                status: "pending",
+                deliveryAddress: address,
+                paymentDetails: {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                },
+              };
+
+              await axios.post(`${apiURL}/api/orders`, orderData, {
+                headers: { Authorization: `Bearer ${freshToken}` },
+              });
+
+              try {
+                await axios.put(
+                  `${apiURL}/api/users/address`,
+                  { address },
+                  { headers: { Authorization: `Bearer ${freshToken}` } }
+                );
+              } catch (err) {
+                console.log("Address save failed", err);
+              }
+
+              alert("Payment Successful & Order Placed! 🍕");
+              clearCart();
+              navigate("/");
+            } catch (error) {
+              console.log(error);
+              alert("Failed To Complete Order Placement");
             }
+          },
 
-            alert("Payment Successful & Order Placed! 🍕");
-            clearCart();
-            navigate("/");
-          } catch (error) {
-            console.log(error);
-            alert("Failed To Complete Order Placement");
-          }
-        },
+          prefill: {
+            name: user.displayName || "Customer",
+            email: user.email || "test@example.com",
+            contact: "9999999999",
+          },
 
-        prefill: {
-          name: user.displayName || "Customer",
-          email: user.email || "test@example.com",
-          contact: "9999999999",
-        },
+          theme: { color: "#C0392B" },
+        };
 
-        theme: { color: "#C0392B" },
-      };
+        const rzp = new window.Razorpay(options);
 
-      const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", function (response) {
+          alert("Payment Failed: " + response.error.description);
+        });
 
-      rzp.on("payment.failed", function (response) {
-        alert("Payment Failed: " + response.error.description);
-      });
-
-      rzp.open();
+        rzp.open();
+      }
     } catch (error) {
       console.log(error);
       alert(
@@ -139,7 +165,6 @@ function Checkout() {
       <Navbar />
 
       <div className="max-w-2xl mx-auto px-5 sm:px-8 py-14">
-
         <div className="mb-10">
           <p className="text-[#C0392B] text-xs font-bold tracking-[0.2em] uppercase mb-2">
             Almost There
@@ -159,7 +184,7 @@ function Checkout() {
           </p>
         </div>
 
-        {/* ===== CART UI (UNCHANGED) ===== */}
+        {/* ===== ORDER ITEMS ===== */}
         <div
           className="rounded-2xl border overflow-hidden mb-5"
           style={{
@@ -210,7 +235,14 @@ function Checkout() {
                       }}
                     >
                       <img
-                        src={item.imageUrl || item.image}
+                        src={
+                          item.imageUrl ||
+                          (item.image
+                            ? item.image.startsWith("http")
+                              ? item.image
+                              : "/" + item.image
+                            : "/pizza.jpg")
+                        }
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />
@@ -219,11 +251,7 @@ function Checkout() {
                       {item.name}
                     </span>
                   </div>
-
-                  <span
-                    className="font-black"
-                    style={{ color: "#C0392B" }}
-                  >
+                  <span className="font-black" style={{ color: "#C0392B" }}>
                     ₹{item.price}
                   </span>
                 </div>
@@ -235,33 +263,58 @@ function Checkout() {
         {/* ===== ADDRESS ===== */}
         <div
           className="rounded-2xl border p-6 mb-7"
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderColor: "#EDE0CC",
-          }}
+          style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
         >
           <h2 className="font-bold mb-4">Delivery Address</h2>
-
           <textarea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             rows={4}
-            className="w-full rounded-xl p-4 text-sm outline-none"
-            style={{
-              border: "1.5px solid #E8D5B0",
-              backgroundColor: "#FEFAF4",
-            }}
+            className="w-full rounded-xl p-4 text-sm outline-none resize-none"
+            style={{ border: "1.5px solid #E8D5B0", backgroundColor: "#FEFAF4" }}
           />
         </div>
 
-        {/* ===== BUTTON ===== */}
+        {/* ===== PAYMENT METHOD ===== */}
+        <div
+          className="rounded-2xl border p-6 mb-7"
+          style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
+        >
+          <h2 className="font-bold mb-4">Payment Method</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("cod")}
+              className="py-3 px-4 rounded-xl border font-bold text-sm transition-all cursor-pointer animate-none"
+              style={{
+                borderColor: paymentMethod === "cod" ? "#C0392B" : "#EDE0CC",
+                backgroundColor: paymentMethod === "cod" ? "#FFF5F3" : "#FFFFFF",
+                color: paymentMethod === "cod" ? "#C0392B" : "#7A6354",
+              }}
+            >
+              💵 Cash on Delivery
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("online")}
+              className="py-3 px-4 rounded-xl border font-bold text-sm transition-all cursor-pointer animate-none"
+              style={{
+                borderColor: paymentMethod === "online" ? "#C0392B" : "#EDE0CC",
+                backgroundColor: paymentMethod === "online" ? "#FFF5F3" : "#FFFFFF",
+                color: paymentMethod === "online" ? "#C0392B" : "#7A6354",
+              }}
+            >
+              💳 Online Payment
+            </button>
+          </div>
+        </div>
+
+        {/* ===== PLACE ORDER BUTTON ===== */}
         <button
           onClick={placeOrder}
           disabled={loading}
-          className="w-full py-4 text-white font-bold rounded-xl"
-          style={{
-            background: "linear-gradient(135deg, #C0392B, #E85D3A)",
-          }}
+          className="w-full py-4 text-white font-bold rounded-xl cursor-pointer disabled:opacity-65"
+          style={{ background: "linear-gradient(135deg, #C0392B, #E85D3A)" }}
         >
           {loading ? "Placing Order..." : "Place Order 🍕"}
         </button>

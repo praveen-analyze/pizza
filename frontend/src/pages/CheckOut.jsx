@@ -35,8 +35,6 @@ function Checkout() {
         return;
       }
 
-      // FIX 1: Force refresh token to avoid expiry issues
-      const token = await user.getIdToken(true);
       const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
 
       if (paymentMethod === "cod") {
@@ -54,16 +52,13 @@ function Checkout() {
           },
         };
 
-        await axios.post(`${apiURL}/api/orders`, orderData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.post(`${apiURL}/api/orders`, orderData);
 
         try {
-          await axios.put(
-            `${apiURL}/api/users/address`,
-            { address },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          await axios.put(`${apiURL}/api/users/address`, {
+            address,
+            uid: user.uid,
+          });
         } catch (err) {
           console.log("Address save failed", err);
         }
@@ -74,14 +69,12 @@ function Checkout() {
       } else {
         const razorpayOrderRes = await axios.post(
           `${apiURL}/api/orders/create-razorpay-order`,
-          { amount: totalAmount },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { amount: totalAmount }
         );
 
         const { id, amount, currency } = razorpayOrderRes.data;
 
         const options = {
-          // FIX 2: Removed old hardcoded key fallback
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: amount,
           currency: currency,
@@ -91,9 +84,6 @@ function Checkout() {
 
           handler: async function (response) {
             try {
-              // FIX 3: Fresh token inside handler (Razorpay modal can take time)
-              const freshToken = await user.getIdToken(true);
-
               const orderData = {
                 customerId: user.uid,
                 customerName: user.displayName || "Customer",
@@ -109,16 +99,13 @@ function Checkout() {
                 },
               };
 
-              await axios.post(`${apiURL}/api/orders`, orderData, {
-                headers: { Authorization: `Bearer ${freshToken}` },
-              });
+              await axios.post(`${apiURL}/api/orders`, orderData);
 
               try {
-                await axios.put(
-                  `${apiURL}/api/users/address`,
-                  { address },
-                  { headers: { Authorization: `Bearer ${freshToken}` } }
-                );
+                await axios.put(`${apiURL}/api/users/address`, {
+                  address,
+                  uid: user.uid,
+                });
               } catch (err) {
                 console.log("Address save failed", err);
               }
@@ -152,7 +139,7 @@ function Checkout() {
     } catch (error) {
       console.log(error);
       alert(
-        "Failed To Initiate Payment: " +
+        "Failed To Place Order: " +
           (error.response?.data?.message || error.message)
       );
     } finally {

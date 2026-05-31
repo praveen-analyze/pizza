@@ -25,7 +25,7 @@ function Checkout() {
       const token = await user.getIdToken();
 
       const razorpayOrderRes = await axios.post(
-        "http://localhost:3000/api/orders/create-razorpay-order",
+        "https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders/create-razorpay-order",
         { amount: totalAmount },
         { headers: { Authorization: `Bearer ${token}` } }
       );

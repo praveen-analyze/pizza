@@ -37,7 +37,7 @@ function Admin() {
     if (!auth.currentUser) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      const res   = await axios.get("http://localhost:3000/api/orders", {
+      const res   = await axios.get("https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data);
@@ -55,7 +55,7 @@ function Admin() {
   const getPizzas = useCallback(async () => {
     try {
       setPizzasLoading(true);
-      const res = await axios.get("http://localhost:3000/api/pizzas");
+      const res = await axios.get("https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas");
       setPizzas(res.data);
     } catch (err) {
       console.log(err);
@@ -73,7 +73,7 @@ function Admin() {
     try {
       setCustomersLoading(true);
       const token = await auth.currentUser.getIdToken();
-      const res = await axios.get("http://localhost:3000/api/users", {
+      const res = await axios.get("https://pizza-4-d5q4.onrender.com/api/pizzas/api/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCustomers(res.data);
@@ -95,7 +95,7 @@ function Admin() {
     try {
       const token = await auth.currentUser.getIdToken();
       await axios.put(
-        `http://localhost:3000/api/orders/${orderId}/status`,
+        `https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders/${orderId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -110,7 +110,7 @@ function Admin() {
     if (!window.confirm("Delete this order?")) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      await axios.delete(`http://localhost:3000/api/orders/${orderId}`, {
+      await axios.delete(`https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       getOrders();
@@ -133,7 +133,7 @@ function Admin() {
     }
     try {
       setAddLoading(true);
-      await axios.post("http://localhost:3000/api/pizzas", {
+      await axios.post("https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas", {
         ...pizza,
         price: Number(pizza.price),
       });
@@ -151,7 +151,7 @@ function Admin() {
   const deletePizza = async (id) => {
     if (!window.confirm("Delete this pizza?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/pizzas/${id}`);
+      await axios.delete(`https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas/${id}`);
       getPizzas();
     } catch (err) {
       console.log(err);
@@ -161,7 +161,7 @@ function Admin() {
   const cleanupDuplicates = async () => {
     if (!window.confirm("Do you want to automatically clean up all duplicate pizzas in the database? This keeps only the first entry of each unique pizza name.")) return;
     try {
-      const res = await axios.post("http://localhost:3000/api/pizzas/cleanup");
+      const res = await axios.post("https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas/cleanup");
       alert(res.data.message);
       getPizzas();
     } catch (err) {

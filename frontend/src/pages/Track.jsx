@@ -24,7 +24,7 @@ function Track() {
       try {
         const token = await user.getIdToken();
         const res = await axios.get(
-          `http://localhost:3000/api/orders/my/${user.uid}`,
+          `https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders/my/${user.uid}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setOrders(res.data);

@@ -15,7 +15,7 @@ function AddPizza() {
     e.preventDefault();
     try {
       setLoading(true);
-      await axios.post("http://localhost:3000/api/pizzas", {
+      await axios.post("https://pizza-4-d5q4.onrender.com/api/pizzas", {
         ...pizza,
         price: Number(pizza.price),
       });

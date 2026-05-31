@@ -15,7 +15,7 @@ function PizzaDetails() {
   useEffect(() => {
     const fetchPizza = async () => {
       try {
-        const res = await axios.get(`http://localhost:3000/api/pizzas/${id}`);
+        const res = await axios.get(`https://pizza-4-d5q4.onrender.com/api/pizzas/api/pizzas/${id}`);
         setPizza(res.data);
       } catch (err) {
         console.log(err);

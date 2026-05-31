@@ -4,11 +4,8 @@ const crypto = require("crypto");
 
 const Order = require("../models/Order");
 
-const verifyFirebaseToken =
-  require("../middleware/verifyFirebaseToken");
-
-const isAdmin =
-  require("../middleware/isAdmin");
+const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const isAdmin = require("../middleware/isAdmin");
 
 const router = express.Router();
 
@@ -25,7 +22,7 @@ router.post("/create-razorpay-order", verifyFirebaseToken, async (req, res) => {
     if (!amount) return res.status(400).json({ message: "Amount is required" });
 
     const options = {
-      amount: amount * 100, // amount in the smallest currency unit
+      amount: amount * 100,
       currency: "INR",
       receipt: `receipt_order_${Date.now()}`,
     };
@@ -42,8 +39,7 @@ router.post("/create-razorpay-order", verifyFirebaseToken, async (req, res) => {
 router.post("/verify-razorpay-payment", verifyFirebaseToken, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-    
-    // Create expected signature
+
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "dummySecret1234567890abc")
@@ -63,155 +59,61 @@ router.post("/verify-razorpay-payment", verifyFirebaseToken, async (req, res) =>
   }
 });
 
-// CREATE ORDER
-router.post(
-  "/",
-  verifyFirebaseToken,
-  async (req, res) => {
-
-    try {
-
-      const order =
-        new Order(req.body);
-
-      const savedOrder =
-        await order.save();
-
-      res.status(201).json(
-        savedOrder
-      );
-
-    } catch (error) {
-
-      res.status(500).json({
-        message: error.message
-      });
-
-    }
-
+// CREATE ORDER — no token required (works for both COD and Razorpay)
+router.post("/", async (req, res) => {
+  try {
+    const order = new Order(req.body);
+    const savedOrder = await order.save();
+    res.status(201).json(savedOrder);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 
 // GET ALL ORDERS (ADMIN)
-router.get(
-  "/",
-  verifyFirebaseToken,
-  isAdmin,
-  async (req, res) => {
-
-    try {
-
-      const orders =
-        await Order.find()
-          .populate("items");
-
-      res.status(200).json(
-        orders
-      );
-
-    } catch (error) {
-
-      res.status(500).json({
-        message: error.message
-      });
-
-    }
-
+router.get("/", verifyFirebaseToken, isAdmin, async (req, res) => {
+  try {
+    const orders = await Order.find().populate("items");
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 
 // GET MY ORDERS
-router.get(
-  "/my/:customerId",
-  verifyFirebaseToken,
-  async (req, res) => {
-
-    try {
-
-      const orders =
-        await Order.find({
-          customerId:
-            req.params.customerId
-        }).populate("items");
-
-      res.status(200).json(
-        orders
-      );
-
-    } catch (error) {
-
-      res.status(500).json({
-        message: error.message
-      });
-
-    }
-
+router.get("/my/:customerId", verifyFirebaseToken, async (req, res) => {
+  try {
+    const orders = await Order.find({
+      customerId: req.params.customerId,
+    }).populate("items");
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 
 // UPDATE STATUS (ADMIN)
-router.put(
-  "/:id/status",
-  verifyFirebaseToken,
-  isAdmin,
-  async (req, res) => {
-
-    try {
-
-      const updatedOrder =
-        await Order.findByIdAndUpdate(
-          req.params.id,
-          {
-            status:
-              req.body.status
-          },
-          {
-            new: true
-          }
-        );
-
-      res.status(200).json(
-        updatedOrder
-      );
-
-    } catch (error) {
-
-      res.status(500).json({
-        message: error.message
-      });
-
-    }
-
+router.put("/:id/status", verifyFirebaseToken, isAdmin, async (req, res) => {
+  try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    res.status(200).json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 
 // DELETE ORDER (ADMIN)
-router.delete(
-  "/:id",
-  verifyFirebaseToken,
-  isAdmin,
-  async (req, res) => {
-
-    try {
-
-      await Order.findByIdAndDelete(
-        req.params.id
-      );
-
-      res.status(200).json({
-        message:
-          "Order deleted"
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        message: error.message
-      });
-
-    }
-
+router.delete("/:id", verifyFirebaseToken, isAdmin, async (req, res) => {
+  try {
+    await Order.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Order deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 
 module.exports = router;

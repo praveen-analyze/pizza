@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 
 function AddPizza() {
+  // 1. Initialized with a default category if you want, or keep it empty but make it required
   const [pizza, setPizza] = useState({ name: "", price: "", image: "", category: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -13,6 +14,13 @@ function AddPizza() {
 
   const addPizza = async (e) => {
     e.preventDefault();
+    
+    // 2. Client-side fallback check just in case
+    if (!pizza.category) {
+      alert("Please select a pizza category! 🍕");
+      return;
+    }
+
     try {
       setLoading(true);
       await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas`, {
@@ -22,8 +30,8 @@ function AddPizza() {
       alert("Pizza Added! 🍕");
       navigate("/admin");
     } catch (err) {
-      console.log(err);
-      alert("Failed to add pizza");
+      console.error("Error adding pizza:", err); // Cleaner logging
+      alert(err.response?.data?.message || "Failed to add pizza"); // Dynamic backend error messages
     } finally {
       setLoading(false);
     }
@@ -52,17 +60,18 @@ function AddPizza() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-blue-800" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-              <select name="category" value={pizza.category} onChange={handleChange}
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Category *</label>
+              {/* Added required attribute here */}
+              <select name="category" value={pizza.category} onChange={handleChange} required
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 bg-white text-blue-800">
-                <option value="">Select category</option>
+                <option value="" disabled>Select category</option> {/* disabled prevents users re-selecting the placeholder */}
                 <option value="Veg">🥦 Veg</option>
                 <option value="Non-Veg">🍗 Non-Veg</option>
                 <option value="Special">⭐ Special</option>
               </select>
             </div>
             <button type="submit" disabled={loading}
-              className="w-full py-3.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-60">
+              className="w-full py-3.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed">
               {loading ? "Adding..." : "Add Pizza 🍕"}
             </button>
           </form>

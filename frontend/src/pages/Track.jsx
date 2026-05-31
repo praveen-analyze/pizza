@@ -17,19 +17,28 @@ const STEP_LABELS = ["Ordered", "Preparing", "On the Way", "Delivered"];
 function Track() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(""); // Track state error messages
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) { setLoading(false); return; }
+      if (!user) { 
+        setLoading(false); 
+        return; 
+      }
       try {
+        setLoading(true);
+        setError("");
         const token = await user.getIdToken();
+        
+        // FIXED: Cleaned up duplicated '/api/pizzas' segment
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/pizzas/api/orders/my/${user.uid}`,
+          `${import.meta.env.VITE_API_URL}/api/orders/my/${user.uid}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setOrders(res.data);
       } catch (error) {
-        console.log(error);
+        console.error("Tracking Fetch Error:", error);
+        setError("Failed to fetch live order tracking updates.");
       } finally {
         setLoading(false);
       }
@@ -53,6 +62,7 @@ function Track() {
           <p className="text-[#A89585] mt-2 font-light">Track all your past and current orders</p>
         </div>
 
+        {/* Loading Spinner */}
         {loading && (
           <div className="flex flex-col items-center py-24">
             <div className="w-14 h-14 border-4 border-[#E8D5B0] border-t-[#C0392B] rounded-full animate-spin mb-5" />
@@ -60,7 +70,19 @@ function Track() {
           </div>
         )}
 
-        {!loading && orders.length === 0 && (
+        {/* Backend Error Alert Box */}
+        {error && !loading && (
+          <div
+            className="max-w-md mx-auto p-6 rounded-2xl text-center border mb-6"
+            style={{ backgroundColor: "#FFF5F3", borderColor: "#F5C0B8" }}
+          >
+            <div className="text-4xl mb-3">⚠️</div>
+            <p className="text-[#C0392B] font-semibold text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Empty State Banner */}
+        {!loading && !error && orders.length === 0 && (
           <div
             className="p-16 text-center rounded-2xl border"
             style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC", boxShadow: "0 2px 12px rgba(26,18,8,0.04)" }}
@@ -86,136 +108,139 @@ function Track() {
           </div>
         )}
 
-        <div className="space-y-5">
-          {orders.map((order, idx) => {
-            const statusConf = STATUS_CONFIG[order.status] || { bg: "#F5F5F5", text: "#555", border: "#DDD", label: order.status };
-            const currentStepIdx = STEPS.indexOf(order.status);
+        {/* Order History Dashboard */}
+        {!loading && !error && (
+          <div className="space-y-5">
+            {orders.map((order, idx) => {
+              const statusConf = STATUS_CONFIG[order.status] || { bg: "#F5F5F5", text: "#555", border: "#DDD", label: order.status };
+              const currentStepIdx = STEPS.indexOf(order.status);
 
-            return (
-              <div
-                key={order._id}
-                className="rounded-2xl border overflow-hidden"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderColor: "#EDE0CC",
-                  boxShadow: "0 2px 12px rgba(26,18,8,0.06)",
-                }}
-              >
-                {/* Order Header */}
+              return (
                 <div
-                  className="px-6 py-4 border-b flex items-center justify-between"
-                  style={{ borderColor: "#EDE0CC", backgroundColor: "#FAF5EE" }}
+                  key={order._id}
+                  className="rounded-2xl border overflow-hidden"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderColor: "#EDE0CC",
+                    boxShadow: "0 2px 12px rgba(26,18,8,0.06)",
+                  }}
                 >
-                  <div>
-                    <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>
-                      Order #{orders.length - idx}
-                    </p>
-                    <p className="text-sm font-medium" style={{ color: "#7A6354" }}>
-                      {order.createdAt
-                        ? new Date(order.createdAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </p>
-                  </div>
-                  <span
-                    className="px-3.5 py-1.5 rounded-full text-xs font-bold border"
-                    style={{ backgroundColor: statusConf.bg, color: statusConf.text, borderColor: statusConf.border }}
+                  {/* Order Header */}
+                  <div
+                    className="px-6 py-4 border-b flex items-center justify-between"
+                    style={{ borderColor: "#EDE0CC", backgroundColor: "#FAF5EE" }}
                   >
-                    {statusConf.label}
-                  </span>
-                </div>
+                    <div>
+                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>
+                        Order #{orders.length - idx}
+                      </p>
+                      <p className="text-sm font-medium" style={{ color: "#7A6354" }}>
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </p>
+                    </div>
+                    <span
+                      className="px-3.5 py-1.5 rounded-full text-xs font-bold border"
+                      style={{ backgroundColor: statusConf.bg, color: statusConf.text, borderColor: statusConf.border }}
+                    >
+                      {statusConf.label}
+                    </span>
+                  </div>
 
-                {/* Order Body */}
-                <div className="px-6 py-5">
-                  {/* Items */}
-                  {order.items && order.items.length > 0 && (
-                    <div className="mb-5">
-                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#A89585" }}>Items</p>
-                      <div className="flex flex-wrap gap-2">
-                        {order.items.map((item) => (
-                          <div
-                            key={item._id || item}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                            style={{ backgroundColor: "#FAF5EE", border: "1px solid #EDE0CC" }}
-                          >
-                            {item.image && (
-                              <img
-                                src={`/${item.image}`}
-                                alt={item.name}
-                                className="w-6 h-6 rounded-lg object-cover"
+                  {/* Order Body */}
+                  <div className="px-6 py-5">
+                    {/* Items */}
+                    {order.items && order.items.length > 0 && (
+                      <div className="mb-5">
+                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#A89585" }}>Items</p>
+                        <div className="flex flex-wrap gap-2">
+                          {order.items.map((item) => (
+                            <div
+                              key={item._id || item}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+                              style={{ backgroundColor: "#FAF5EE", border: "1px solid #EDE0CC" }}
+                            >
+                              {item.image && (
+                                <img
+                                  src={`/${item.image}`}
+                                  alt={item.name}
+                                  className="w-6 h-6 rounded-lg object-cover"
+                                />
+                              )}
+                              <span className="text-xs font-semibold" style={{ color: "#3D2B1F" }}>
+                                {item.name || "Item"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-end justify-between mb-6">
+                      <div>
+                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5" style={{ color: "#A89585" }}>
+                          Delivery Address
+                        </p>
+                        <p className="text-sm font-medium" style={{ color: "#3D2B1F", maxWidth: "280px" }}>
+                          {order.deliveryAddress || "—"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>Total</p>
+                        <p
+                          className="text-2xl font-black"
+                          style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
+                        >
+                          ₹{order.totalAmount}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Progress tracking matrix */}
+                    <div>
+                      <div className="flex items-center">
+                        {STEPS.map((step, i) => {
+                          const active = i <= currentStepIdx;
+                          const isLast = i === STEPS.length - 1;
+                          return (
+                            <div key={step} className="flex items-center flex-1 last:flex-none">
+                              <div
+                                className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-300"
+                                style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
                               />
-                            )}
-                            <span className="text-xs font-semibold" style={{ color: "#3D2B1F" }}>
-                              {item.name || "Item"}
-                            </span>
-                          </div>
+                              {!isLast && (
+                                <div
+                                  className="flex-1 h-0.5 mx-1 transition-all duration-500"
+                                  style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between mt-2">
+                        {STEP_LABELS.map((label, i) => (
+                          <span
+                            key={label}
+                            className="text-[10px] font-semibold"
+                            style={{ color: i <= currentStepIdx ? "#C0392B" : "#A89585" }}
+                          >
+                            {label}
+                          </span>
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  <div className="flex items-end justify-between mb-6">
-                    <div>
-                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5" style={{ color: "#A89585" }}>
-                        Delivery Address
-                      </p>
-                      <p className="text-sm font-medium" style={{ color: "#3D2B1F", maxWidth: "280px" }}>
-                        {order.deliveryAddress || "—"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>Total</p>
-                      <p
-                        className="text-2xl font-black"
-                        style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
-                      >
-                        ₹{order.totalAmount}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div>
-                    <div className="flex items-center">
-                      {STEPS.map((step, i) => {
-                        const active = i <= currentStepIdx;
-                        const isLast = i === STEPS.length - 1;
-                        return (
-                          <div key={step} className="flex items-center flex-1 last:flex-none">
-                            <div
-                              className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-300"
-                              style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
-                            />
-                            {!isLast && (
-                              <div
-                                className="flex-1 h-0.5 mx-1 transition-all duration-500"
-                                style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      {STEP_LABELS.map((label, i) => (
-                        <span
-                          key={label}
-                          className="text-[10px] font-semibold"
-                          style={{ color: i <= currentStepIdx ? "#C0392B" : "#A89585" }}
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

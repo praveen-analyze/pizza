@@ -19,12 +19,23 @@ function Menu() {
 
   useEffect(() => {
     const getPizzas = async () => {
+      // Grab the URL from env variables
+      const baseURL = import.meta.env.VITE_API_URL;
+
+      if (!baseURL) {
+        console.error("VITE_API_URL is missing from environment variables!");
+        setError("Configuration error: Backend URL is not defined.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas`);
+        // FIXED: Removed the duplicated '/api/pizzas'
+        const res = await axios.get(`${baseURL}/api/pizzas`);
         setPizzas(res.data);
       } catch (error) {
-        console.log(error);
+        console.error("API Fetch Error:", error);
         setError("Failed To Load Pizzas. Is the backend running?");
       } finally {
         setLoading(false);

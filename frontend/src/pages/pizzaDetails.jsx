@@ -1,36 +1,42 @@
-// ── PizzaDetails.jsx ─────────────────────────────────────────────────────────
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 import { Navbar } from "../components/Navbar";
- 
+
 function PizzaDetails() {
   const [pizza, setPizza] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(""); // Track state errors cleanly
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
- 
+
   useEffect(() => {
     const fetchPizza = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas/${id}`);
+        setLoading(true);
+        setError("");
+        // FIXED: Added missing forward slash after VITE_API_URL
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/${id}`);
         setPizza(res.data);
       } catch (err) {
-        console.log(err);
+        console.error("Fetch Pizza Detail Error:", err);
+        setError("Could not retrieve pizza details. Please verify your connection.");
       } finally {
         setLoading(false);
       }
     };
-    fetchPizza();
+    if (id) fetchPizza();
   }, [id]);
- 
+
   const handleAddToCart = () => {
-    addToCart(pizza);
-    navigate("/cart");
+    if (pizza) {
+      addToCart(pizza);
+      navigate("/cart");
+    }
   };
- 
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FEFAF4" }}>
       <div className="flex flex-col items-center gap-4">
@@ -39,17 +45,20 @@ function PizzaDetails() {
       </div>
     </div>
   );
- 
-  if (!pizza) return (
+
+  if (error || !pizza) return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FEFAF4" }}>
-      <div className="text-center">
+      <div className="text-center px-4">
         <div className="text-6xl mb-5">🍕</div>
         <h2
-          className="text-2xl font-bold mb-5"
+          className="text-2xl font-bold mb-3"
           style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
         >
-          Pizza not found
+          {error ? "Connection Error" : "Pizza Not Found"}
         </h2>
+        <p className="text-[#A89585] mb-6 text-sm font-light">
+          {error || "The pizza item you are looking for does not exist or has been modified."}
+        </p>
         <button
           onClick={() => navigate("/menu")}
           className="px-7 py-3 text-white font-bold rounded-full text-sm transition-all hover:scale-105"
@@ -60,14 +69,14 @@ function PizzaDetails() {
       </div>
     </div>
   );
- 
+
   const categoryColor = {
     Veg:       { bg: "#E8F5E9", text: "#2E7D32", border: "#A5D6A7" },
     "Non-Veg": { bg: "#FBE9E7", text: "#BF360C", border: "#FFAB91" },
     Special:   { bg: "#FFF8E1", text: "#E65100", border: "#FFCC80" },
   };
   const cat = categoryColor[pizza.category] || {};
- 
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
       <Navbar />
@@ -81,12 +90,12 @@ function PizzaDetails() {
         >
           ← Back to Menu
         </button>
- 
+
         <div
           className="rounded-2xl border overflow-hidden md:flex"
           style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC", boxShadow: "0 8px 40px rgba(26,18,8,0.09)" }}
         >
-          {/* Image */}
+          {/* Image Context Container */}
           <div className="md:w-1/2 h-72 md:h-auto overflow-hidden" style={{ backgroundColor: "#F5EFE6" }}>
             {pizza.image ? (
               <img
@@ -98,8 +107,8 @@ function PizzaDetails() {
               <div className="w-full h-full flex items-center justify-center text-8xl">🍕</div>
             )}
           </div>
- 
-          {/* Details */}
+
+          {/* Core Details Display */}
           <div className="md:w-1/2 p-10 flex flex-col justify-center">
             {pizza.category && cat.bg && (
               <span
@@ -143,5 +152,5 @@ function PizzaDetails() {
     </div>
   );
 }
- 
+
 export default PizzaDetails;

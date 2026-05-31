@@ -37,7 +37,8 @@ function Admin() {
     if (!auth.currentUser) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      const res   = await axios.get("https://pizza-4-d5q4.onrender.com/api/pizzas/api/orders", {
+      // FIXED: Adjusted path to standard global orders route
+      const res   = await axios.get(`${import.meta.env.VITE_API_URL}/api/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data);
@@ -55,7 +56,8 @@ function Admin() {
   const getPizzas = useCallback(async () => {
     try {
       setPizzasLoading(true);
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas`);
+      // FIXED: Cleared redundant middleware route segment
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas`);
       setPizzas(res.data);
     } catch (err) {
       console.log(err);
@@ -73,7 +75,8 @@ function Admin() {
     try {
       setCustomersLoading(true);
       const token = await auth.currentUser.getIdToken();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/pizzas/api/users`, {
+      // FIXED: Adjusted path to standard users administration route
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCustomers(res.data);
@@ -94,8 +97,9 @@ function Admin() {
     if (!auth.currentUser) return;
     try {
       const token = await auth.currentUser.getIdToken();
+      // FIXED: Adjusted target endpoint formatting
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/pizzas/api/orders/${orderId}/status`,
+        `${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -110,7 +114,8 @@ function Admin() {
     if (!window.confirm("Delete this order?")) return;
     try {
       const token = await auth.currentUser.getIdToken();
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pizzas/api/orders/${orderId}`, {
+      // FIXED: Cleared base route string syntax
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       getOrders();
@@ -133,7 +138,8 @@ function Admin() {
     }
     try {
       setAddLoading(true);
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas`, {
+      // FIXED: Adjusted collection targeted endpoint configuration
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas`, {
         ...pizza,
         price: Number(pizza.price),
       });
@@ -151,7 +157,8 @@ function Admin() {
   const deletePizza = async (id) => {
     if (!window.confirm("Delete this pizza?")) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas/${id}`);
+      // FIXED: Swapped out duplicated nested directory path configuration
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pizzas/${id}`);
       getPizzas();
     } catch (err) {
       console.log(err);
@@ -161,7 +168,8 @@ function Admin() {
   const cleanupDuplicates = async () => {
     if (!window.confirm("Do you want to automatically clean up all duplicate pizzas in the database? This keeps only the first entry of each unique pizza name.")) return;
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas/api/pizzas/cleanup`);
+      // FIXED: Configured database cleanup subpath destination address correctly
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/pizzas/cleanup`);
       alert(res.data.message);
       getPizzas();
     } catch (err) {
@@ -210,7 +218,7 @@ function Admin() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {[
-            { label: "Total Orders",  value: stats.total,         icon: "📦", bg: "#EBF4FF", accent: "#1A5C8A", border: "#A8D0F0" },
+            { label: "Total Orders",   value: stats.total,         icon: "📦", bg: "#EBF4FF", accent: "#1A5C8A", border: "#A8D0F0" },
             { label: "Pending",       value: stats.pending,       icon: "⏳", bg: "#FFF8E8", accent: "#92620A", border: "#F0D48A" },
             { label: "Delivered",     value: stats.delivered,     icon: "✅", bg: "#EAFAF0", accent: "#1A6B40", border: "#90D8B0" },
             { label: "Revenue",       value: `₹${stats.revenue}`, icon: "💰", bg: "#FFF5F3", accent: "#C0392B", border: "#F5C0B8" },
@@ -342,7 +350,7 @@ function Admin() {
                         {/* Status Buttons */}
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { label: "Pending",          status: "pending" },
+                            { label: "Pending",         status: "pending" },
                             { label: "Preparing",        status: "Preparing" },
                             { label: "Out for Delivery", status: "Out for Delivery" },
                             { label: "Delivered",        status: "Delivered" },
@@ -631,46 +639,48 @@ function Admin() {
                 className="rounded-2xl border overflow-hidden"
                 style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC", boxShadow: "0 2px 8px rgba(26,18,8,0.05)" }}
               >
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr style={{ backgroundColor: "#FAF5EE", borderBottom: "1px solid #EDE0CC" }}>
-                      {["Name", "Email", "Phone", "Addresses", "Joined"].map((h) => (
-                        <th
-                          key={h}
-                          className="p-4 text-[11px] font-bold tracking-wider uppercase"
-                          style={{ color: "#A89585" }}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customers.map((c) => (
-                      <tr
-                        key={c._id}
-                        className="transition-colors"
-                        style={{ borderBottom: "1px solid #F0E8D8" }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#FAF5EE"}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                      >
-                        <td className="p-4 font-bold text-sm" style={{ color: "#1A1208" }}>{c.name}</td>
-                        <td className="p-4 text-sm" style={{ color: "#7A6354" }}>{c.email}</td>
-                        <td className="p-4 text-sm" style={{ color: "#7A6354" }}>{c.phone || "—"}</td>
-                        <td className="p-4 text-xs" style={{ color: "#7A6354" }}>
-                          {c.addresses?.length > 0 ? (
-                            <ul className="list-disc pl-4 space-y-0.5">
-                              {c.addresses.map((addr, i) => <li key={i}>{addr}</li>)}
-                            </ul>
-                          ) : "—"}
-                        </td>
-                        <td className="p-4 text-xs" style={{ color: "#A89585" }}>
-                          {new Date(c.createdAt).toLocaleDateString()}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                      <tr style={{ backgroundColor: "#FAF5EE", borderBottom: "1px solid #EDE0CC" }}>
+                        {["Name", "Email", "Phone", "Addresses", "Joined"].map((h) => (
+                          <th
+                            key={h}
+                            className="p-4 text-[11px] font-bold tracking-wider uppercase"
+                            style={{ color: "#A89585" }}
+                          >
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {customers.map((c) => (
+                        <tr
+                          key={c._id}
+                          className="transition-colors"
+                          style={{ borderBottom: "1px solid #F0E8D8" }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#FAF5EE"}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                        >
+                          <td className="p-4 font-bold text-sm" style={{ color: "#1A1208" }}>{c.name}</td>
+                          <td className="p-4 text-sm" style={{ color: "#7A6354" }}>{c.email}</td>
+                          <td className="p-4 text-sm" style={{ color: "#7A6354" }}>{c.phone || "—"}</td>
+                          <td className="p-4 text-xs" style={{ color: "#7A6354" }}>
+                            {c.addresses?.length > 0 ? (
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                {c.addresses.map((addr, i) => <li key={i}>{addr}</li>)}
+                              </ul>
+                            ) : "—"}
+                          </td>
+                          <td className="p-4 text-xs" style={{ color: "#A89585" }}>
+                            {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

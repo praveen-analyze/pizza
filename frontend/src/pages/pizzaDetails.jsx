@@ -17,7 +17,7 @@ function PizzaDetails() {
       try {
         setLoading(true);
         setError("");
-        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
+        const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
         const res = await axios.get(`${apiURL}/api/pizzas/${id}`);
         setPizza(res.data);
       } catch (err) {

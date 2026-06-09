@@ -2,6 +2,7 @@ const express = require("express");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const Order = require("../models/Order");
+const { protect, admin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.post("/create-razorpay-order", async (req, res) => {
 });
 
 // 2. VERIFY PAYMENT AND SAVE ORDER TO ADMIN/DATABASE
-router.post("/verify-and-create", async (req, res) => {
+router.post("/verify-and-create", protect, async (req, res) => {
   try {
     const { 
       razorpay_order_id, 
@@ -88,7 +89,7 @@ router.post("/verify-and-create", async (req, res) => {
 });
 
 // 3. GET ALL ORDERS (For Admin Dashboard)
-router.get("/", async (req, res) => {
+router.get("/", protect, admin, async (req, res) => {
   try {
     const orders = await Order.find().populate("items");
     res.status(200).json(orders);
@@ -98,7 +99,7 @@ router.get("/", async (req, res) => {
 });
 
 // 4. GET MY ORDERS (For Customers)
-router.get("/my/:customerId", async (req, res) => {
+router.get("/my/:customerId", protect, async (req, res) => {
   try {
     const orders = await Order.find({
       customerId: req.params.customerId,
@@ -110,7 +111,7 @@ router.get("/my/:customerId", async (req, res) => {
 });
 
 // 5. UPDATE STATUS (For Admin Management)
-router.put("/:id/status", async (req, res) => {
+router.put("/:id/status", protect, admin, async (req, res) => {
   try {
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
@@ -124,7 +125,7 @@ router.put("/:id/status", async (req, res) => {
 });
 
 // 6. DELETE ORDER
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, admin, async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Order deleted" });

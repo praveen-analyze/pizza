@@ -1,21 +1,19 @@
 import {
   createContext,
   useEffect,
-  useState
+  useState,
+  useContext
 } from "react";
 
-import { auth } from "../config/firebase";
+import { AuthContext } from "./AuthContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CartContext =
   createContext();
 
-function CartProvider({
-  children
-}) {
-
-  const userId =
-    auth.currentUser?.uid || "guest";
+function CartProvider({ children }) {
+  const { user } = useContext(AuthContext);
+  const userId = user?._id || "guest";
 
   // LOAD CART
   const [cart, setCart] =

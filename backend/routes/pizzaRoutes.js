@@ -1,5 +1,6 @@
 const express = require("express");
 const Pizza = require("../models/Pizza");
+const { protect, admin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // CREATE PIZZA
-router.post("/", async (req, res) => {
+router.post("/", protect, admin, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) {
@@ -55,7 +56,7 @@ router.post("/", async (req, res) => {
 });
 
 // UPDATE PIZZA
-router.put("/:id", async (req, res) => {
+router.put("/:id", protect, admin, async (req, res) => {
   try {
     const pizza = await Pizza.findByIdAndUpdate(
       req.params.id,
@@ -70,7 +71,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE PIZZA
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, admin, async (req, res) => {
   try {
     await Pizza.findByIdAndDelete(req.params.id);
 
@@ -81,7 +82,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // CLEANUP DUPLICATE PIZZAS (keeps first occurrence of each unique name)
-router.post("/cleanup", async (req, res) => {
+router.post("/cleanup", protect, admin, async (req, res) => {
   try {
     const pizzas = await Pizza.find();
     const seen = new Set();

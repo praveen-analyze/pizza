@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import axios from "axios";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 
 const STATUS_CONFIG = {
@@ -19,8 +18,10 @@ function Track() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const { user, token } = useContext(AuthContext);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const fetchOrders = async () => {
       if (!user) {
         setLoading(false);
         return;
@@ -28,8 +29,10 @@ function Track() {
       try {
         setLoading(true);
         setError("");
-        const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
-        const res = await axios.get(`${apiURL}/api/orders/my/${user.uid}`);
+        const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        const res = await axios.get(`${apiURL}/api/orders/my/${user._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setOrders(res.data);
       } catch (error) {
         console.error("Tracking Fetch Error:", error);
@@ -37,9 +40,9 @@ function Track() {
       } finally {
         setLoading(false);
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    };
+    fetchOrders();
+  }, [user, token]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>

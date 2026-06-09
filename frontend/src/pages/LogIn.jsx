@@ -1,7 +1,7 @@
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../config/firebase";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
 
 function LogIn() {
   const navigate = useNavigate();
@@ -11,24 +11,27 @@ function LogIn() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  const { user, login } = useContext(AuthContext);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate("/");
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+    if (user) {
+      navigate("/");
+    }
+  }, [navigate, user]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const res = await axios.post(`${apiURL}/api/users/login`, { email, password });
+      login(res.data, res.data.token);
       navigate("/");
     } catch (error) {
       console.log(error);
-      setError("Invalid email or password. Please try again.");
+      setError(error.response?.data?.message || "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }

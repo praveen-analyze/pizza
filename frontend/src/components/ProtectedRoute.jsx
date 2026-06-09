@@ -1,22 +1,16 @@
 // ── ProtectedRoute.jsx ──────────────────────────────────────────────────────
 import { Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../config/firebase";
- 
-const ADMIN_UID = "QCxXXNqFdMVfn4WmHK8CcWKx6K72";
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
  
 export function ProtectedRoute({ children }) {
-  const [user, setUser] = useState(null);
+  const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
- 
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
+    // Simulate short load time if necessary, or just rely on user state being populated synchronously from local storage.
+    setLoading(false);
+  }, [user]);
  
   if (loading) {
     return (
@@ -32,7 +26,7 @@ export function ProtectedRoute({ children }) {
     );
   }
  
-  if (!user || user.uid !== ADMIN_UID) {
+  if (!user || !user.isAdmin) {
     return <Navigate to="/" replace />;
   }
  

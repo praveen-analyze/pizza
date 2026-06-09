@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../config/firebase';
+import { AuthContext } from '../context/AuthContext';
 
 const inputStyle = {
   color: "#1A1208",
@@ -23,6 +22,7 @@ function SignUp() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,12 +30,14 @@ function SignUp() {
   const [showPass, setShowPass] = useState(false);
   const navigate = useNavigate();
 
+  const { user, login } = useContext(AuthContext);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    auth.onAuthStateChanged(function (user) {
-      if (user) { navigate("/login"); }
-    });
-  }, [navigate]);
+    if (user) {
+      navigate("/");
+    }
+  }, [navigate, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,18 +48,13 @@ function SignUp() {
     }
     try {
       setLoading(true);
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      const token = await res.user.getIdToken();
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
-      await axios.post(`${apiURL}/api/users`,
-        { uid: res.user.uid, name, email, phone },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('User created:', res);
-      navigate('/login');
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const res = await axios.post(`${apiURL}/api/users/register`, { name, email, password, phone, address });
+      login(res.data, res.data.token);
+      navigate("/");
     } catch (err) {
       console.log("failed to add user", err);
-      setError(err.message || "Registration failed. Try again.");
+      setError(err.response?.data?.message || "Registration failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -66,6 +63,7 @@ function SignUp() {
   const fields = [
     { label: "Full Name", type: "text", value: name, onChange: setName, placeholder: "John Doe", autoComplete: "name" },
     { label: "Phone Number", type: "tel", value: phone, onChange: setPhone, placeholder: "9876543210", autoComplete: "tel" },
+    { label: "Address", type: "text", value: address, onChange: setAddress, placeholder: "123 Main St, Apt 4", autoComplete: "street-address" },
     { label: "Email Address", type: "email", value: email, onChange: setEmail, placeholder: "you@example.com", autoComplete: "email" },
   ];
 

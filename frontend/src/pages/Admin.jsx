@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useContext } from "react";
 import axios from "axios";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 
 const STATUS_STYLES = {
@@ -26,18 +25,12 @@ function Admin() {
   const [customers, setCustomers] = useState([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [addLoading, setAddLoading]       = useState(false);
-  const [user, setUser]           = useState(null);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
+  const { user, token } = useContext(AuthContext);
 
   const getOrders = useCallback(async () => {
-    if (!auth.currentUser) return;
+    if (!user || !token) return;
     try {
-      const token = await auth.currentUser.getIdToken();
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       const res   = await axios.get(`${apiURL}/api/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -56,7 +49,7 @@ function Admin() {
   const getPizzas = useCallback(async () => {
     try {
       setPizzasLoading(true);
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       const res = await axios.get(`${apiURL}/api/pizzas`);
       setPizzas(res.data);
     } catch (err) {
@@ -71,11 +64,10 @@ function Admin() {
   }, [getPizzas]);
 
   const getCustomers = useCallback(async () => {
-    if (!auth.currentUser) return;
+    if (!user || !token) return;
     try {
       setCustomersLoading(true);
-      const token = await auth.currentUser.getIdToken();
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       const res = await axios.get(`${apiURL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -94,10 +86,9 @@ function Admin() {
   }, [user, activeTab, getCustomers]);
 
   const updateStatus = async (orderId, status) => {
-    if (!auth.currentUser) return;
+    if (!user || !token) return;
     try {
-      const token = await auth.currentUser.getIdToken();
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       await axios.put(
         `${apiURL}/api/orders/${orderId}/status`,
         { status },
@@ -110,11 +101,10 @@ function Admin() {
   };
 
   const deleteOrder = async (orderId) => {
-    if (!auth.currentUser) return;
+    if (!user || !token) return;
     if (!window.confirm("Delete this order?")) return;
     try {
-      const token = await auth.currentUser.getIdToken();
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       await axios.delete(`${apiURL}/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -138,11 +128,11 @@ function Admin() {
     }
     try {
       setAddLoading(true);
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
       await axios.post(`${apiURL}/api/pizzas`, {
         ...pizza,
         price: Number(pizza.price),
-      });
+      }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Pizza Added Successfully! 🍕");
       setPizza(EMPTY_PIZZA);
       getPizzas();
@@ -157,8 +147,10 @@ function Admin() {
   const deletePizza = async (id) => {
     if (!window.confirm("Delete this pizza?")) return;
     try {
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
-      await axios.delete(`${apiURL}/api/pizzas/${id}`);
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      await axios.delete(`${apiURL}/api/pizzas/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       getPizzas();
     } catch (err) {
       console.log(err);
@@ -168,8 +160,10 @@ function Admin() {
   const cleanupDuplicates = async () => {
     if (!window.confirm("Do you want to automatically clean up all duplicate pizzas in the database? This keeps only the first entry of each unique pizza name.")) return;
     try {
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-4-d5q4.onrender.com";
-      const res = await axios.post(`${apiURL}/api/pizzas/cleanup`);
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const res = await axios.post(`${apiURL}/api/pizzas/cleanup`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       alert(res.data.message);
       getPizzas();
     } catch (err) {

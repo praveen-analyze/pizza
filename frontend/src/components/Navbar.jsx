@@ -1,28 +1,18 @@
 import { useEffect, useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
-import { auth } from "../config/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { AuthContext } from "../context/AuthContext";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [log, setLog] = useState(false);
-  const [user, setUser] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const { cart, clearCart } = useContext(CartContext);
+  const { user, logout: contextLogout } = useContext(AuthContext);
 
-  const ADMIN_UID = "QCxXXNqFdMVfn4WmHK8CcWKx6K72";
-  const isAdmin = user?.uid === ADMIN_UID;
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setLog(!!u);
-      setUser(u);
-    });
-    return () => unsubscribe();
-  }, []);
+  const isAdmin = user?.isAdmin;
+  const log = !!user;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -32,7 +22,7 @@ export const Navbar = () => {
 
   async function logout() {
     try {
-      await signOut(auth);
+      contextLogout();
       clearCart();
       localStorage.removeItem("cart");
       setOpen(false);

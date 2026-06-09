@@ -2,12 +2,13 @@ import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CartContext } from "../context/CartContext";
-import { auth } from "../config/firebase";
+import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 
 function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart } = useContext(CartContext);
+  const { user, token } = useContext(AuthContext);
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,20 +27,20 @@ function Checkout() {
 
     try {
       setLoading(true);
-      const user = auth.currentUser;
 
-      if (!user) {
+      if (!user || !token) {
         alert("Please Login");
         navigate("/login");
         return;
       }
 
-      const apiURL = import.meta.env.VITE_API_URL || "https://pizza-5-9c5g.onrender.com";
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
       // Step 1: Create the transaction block token inside Razorpay systems via backend
       const razorpayOrderRes = await axios.post(
         `${apiURL}/api/orders/create-razorpay-order`,
-        { amount: totalAmount }
+        { amount: totalAmount },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const { id, amount, currency } = razorpayOrderRes.data;
@@ -57,8 +58,8 @@ function Checkout() {
           try {
             // Pack customer identity, order cart contents, and authentication signatures
             const completeOrderData = {
-              customerId: user.uid,
-              customerName: user.displayName || "Customer",
+              customerId: user._id,
+              customerName: user.name || "Customer",
               customerEmail: user.email,
               items: cart.map((item) => item._id),
               totalAmount,
@@ -69,7 +70,9 @@ function Checkout() {
             };
 
             // Step 3: Verify security token strings and save directly on server database
-            await axios.post(`${apiURL}/api/orders/verify-and-create`, completeOrderData);
+            await axios.post(`${apiURL}/api/orders/verify-and-create`, completeOrderData, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
 
             alert("Payment Successful & Order Placed! 🍕");
             clearCart();
@@ -81,9 +84,9 @@ function Checkout() {
         },
 
         prefill: {
-          name: user.displayName || "Customer",
-          email: user.email || "customer@gmail.com",
-          contact: "9999999999",
+          name: user.name || "Customer",
+          email: user.email || "customer@example.com",
+          contact: user.phone || "9999999999",
         },
         theme: {
           color: "#C0392B",

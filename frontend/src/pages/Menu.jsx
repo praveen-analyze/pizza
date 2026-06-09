@@ -26,8 +26,8 @@ function Menu() {
         const res = await axios.get(`${baseURL}/api/pizzas`);
         setPizzas(res.data);
       } catch (error) {
-        console.error("API Fetch Error:", error);
-        setError("Failed To Load Pizzas. Is the backend running?");
+        console.error("Error Fetching Pizzas:", error);
+        setError(`Failed To Load Pizzas: ${error.message}. (Tried URL: ${baseURL})`);
       } finally {
         setLoading(false);
       }

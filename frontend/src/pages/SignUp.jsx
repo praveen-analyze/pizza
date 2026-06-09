@@ -54,7 +54,7 @@ function SignUp() {
       navigate("/");
     } catch (err) {
       console.log("failed to add user", err);
-      setError(err.response?.data?.message || "Registration failed. Try again.");
+      setError(err.response?.data?.message || err.message || "Registration failed. Try again.");
     } finally {
       setLoading(false);
     }

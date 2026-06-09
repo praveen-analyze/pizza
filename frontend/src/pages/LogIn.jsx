@@ -31,7 +31,7 @@ function LogIn() {
       navigate("/");
     } catch (error) {
       console.log(error);
-      setError(error.response?.data?.message || "Invalid email or password. Please try again.");
+      setError(error.response?.data?.message || error.message || "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }

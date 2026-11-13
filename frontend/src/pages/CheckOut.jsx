@@ -4,6 +4,9 @@ import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
+import { useRef } from "react";
+import { usePageMotion } from "../motion";
+import { CartIcon, ArrowRight } from "../components/Icons";
 
 function Checkout() {
   const navigate = useNavigate();
@@ -11,6 +14,9 @@ function Checkout() {
   const { user, token } = useContext(AuthContext);
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const scope = useRef(null);
+  usePageMotion(scope);
 
   const totalAmount = cart.reduce((total, item) => total + item.price, 0);
 
@@ -109,129 +115,110 @@ function Checkout() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
+    <div ref={scope} className="min-h-screen bg-[var(--color-dough)]">
       <Navbar />
 
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-14">
-        <div className="mb-10">
-          <p className="text-[#C0392B] text-xs font-bold tracking-[0.2em] uppercase mb-2">
-            Almost There
-          </p>
-          <h1
-            className="text-4xl font-black"
-            style={{
-              color: "#1A1208",
-              fontFamily: "'Georgia', serif",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Checkout
-          </h1>
-          <p className="text-[#A89585] mt-2 font-light">
-            Review your order and confirm
-          </p>
-        </div>
+      <div className="container-x max-w-5xl pt-12 sm:pt-16 pb-24">
+        <header className="mb-8 sm:mb-10">
+          <h1 className="t-h1 text-[var(--color-ink)]">Checkout</h1>
+          <p className="text-[var(--color-muted)] mt-2">Almost there — review your order and confirm</p>
+        </header>
 
-        {/* ===== ORDER ITEMS ===== */}
-        <div
-          className="rounded-2xl border overflow-hidden mb-5"
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderColor: "#EDE0CC",
-            boxShadow: "0 2px 12px rgba(26,18,8,0.05)",
-          }}
-        >
-          <div
-            className="px-6 py-4 border-b"
-            style={{ borderColor: "#EDE0CC", backgroundColor: "#FAF5EE" }}
-          >
-            <h2
-              className="font-bold text-[15px]"
-              style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
-            >
+        <div className="grid lg:grid-cols-[1fr_24rem] gap-6 lg:gap-10 items-start">
+          {/* ===== ORDER ITEMS ===== */}
+          <section className="panel overflow-hidden lg:order-2 lg:sticky lg:top-24">
+            <h2 className="px-6 py-4 font-display text-[1.125rem] font-bold tracking-[-0.015em] text-[var(--color-ink)] border-b border-[var(--color-sand-soft)] bg-[var(--color-crust)]">
               Order Items
             </h2>
-          </div>
 
-          <div className="divide-y" style={{ borderColor: "#EDE0CC" }}>
-            {cart.length === 0 ? (
-              <div className="px-6 py-10 text-center text-[#A89585]">
-                <div className="text-4xl mb-3">🛒</div>
-                <p className="text-sm">
-                  Your cart is empty.{" "}
-                  <button
-                    onClick={() => navigate("/menu")}
-                    className="font-semibold"
-                    style={{ color: "#C0392B" }}
-                  >
-                    Browse menu →
-                  </button>
-                </p>
-              </div>
-            ) : (
-              cart.map((item) => (
-                <div
-                  key={item._id}
-                  className="px-6 py-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-xl overflow-hidden"
-                      style={{
-                        backgroundColor: "#F5EFE6",
-                        border: "1px solid #EDE0CC",
-                      }}
+            <div className="divide-y divide-[var(--color-sand-soft)]">
+              {cart.length === 0 ? (
+                <div className="px-6 py-10 text-center text-[var(--color-muted)]">
+                  <CartIcon className="w-9 h-9 mx-auto mb-3 text-[var(--color-sand)]" />
+                  <p>
+                    Your cart is empty.{" "}
+                    <button
+                      onClick={() => navigate("/menu")}
+                      className="inline-flex items-center gap-1 font-semibold text-[var(--color-tomato)] underline-offset-4 hover:underline min-h-[44px]"
                     >
-                      <img
-                        src={
-                          item.imageUrl ||
-                          (item.image
-                            ? item.image.startsWith("http")
-                              ? item.image
-                              : "/" + item.image
-                            : "/pizza.jpg")
-                        }
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
+                      Browse menu <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </p>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div
+                    key={item._id}
+                    className="px-6 py-4 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-[var(--color-crust)]">
+                        <img
+                          src={
+                            item.imageUrl ||
+                            (item.image
+                              ? item.image.startsWith("http")
+                                ? item.image
+                                : "/" + item.image
+                              : "/pizza.jpg")
+                          }
+                          alt={item.name}
+                          width="48"
+                          height="48"
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="font-semibold text-[0.9375rem] truncate">
+                        {item.name}
+                      </span>
                     </div>
-                    <span className="font-semibold text-[14px]">
-                      {item.name}
+                    <span className="t-price text-[1.0625rem]">
+                      ₹{item.price}
                     </span>
                   </div>
-                  <span className="font-black" style={{ color: "#C0392B" }}>
-                    ₹{item.price}
-                  </span>
-                </div>
-              ))
+                ))
+              )}
+            </div>
+            {cart.length > 0 && (
+              <div className="px-6 py-4 flex justify-between items-baseline border-t border-[var(--color-sand-soft)] num">
+                <span className="font-display font-bold text-[var(--color-ink)]">Total</span>
+                <span className="t-price text-[1.5rem]">₹{totalAmount}</span>
+              </div>
             )}
-          </div>
-        </div>
+          </section>
 
-        {/* ===== ADDRESS ===== */}
-        <div
-          className="rounded-2xl border p-6 mb-7"
-          style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
-        >
-          <h2 className="font-bold mb-4">Delivery Address</h2>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl p-4 text-sm outline-none resize-none"
-            style={{ border: "1.5px solid #E8D5B0", backgroundColor: "#FEFAF4" }}
-          />
-        </div>
+          {/* ===== ADDRESS ===== */}
+          <section className="panel p-6 sm:p-7 lg:order-1">
+            <label htmlFor="delivery-address" className="block font-display text-[1.375rem] font-bold tracking-[-0.02em] text-[var(--color-ink)] mb-4">
+              Delivery Address
+            </label>
+            <textarea
+              id="delivery-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={4}
+              autoComplete="street-address"
+              className="field resize-none leading-relaxed"
+            />
 
-        {/* ===== PLACE ORDER BUTTON ===== */}
-        <button
-          onClick={placeOrder}
-          disabled={loading}
-          className="w-full py-4 text-white font-bold rounded-xl cursor-pointer disabled:opacity-65"
-          style={{ background: "linear-gradient(135deg, #C0392B, #E85D3A)" }}
-        >
-          {loading ? "Placing Order..." : "Place Order 🍕"}
-        </button>
+            {/* ===== PLACE ORDER BUTTON ===== */}
+            <button
+              onClick={placeOrder}
+              disabled={loading}
+              className="btn btn-primary btn-block mt-6"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />
+                  Placing Order...
+                </>
+              ) : (
+                "Place Order"
+              )}
+            </button>
+          </section>
+        </div>
       </div>
     </div>
   );

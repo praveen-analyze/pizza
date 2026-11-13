@@ -18,10 +18,7 @@ export function ProtectedRoute({ children }) {
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: "#FEFAF4" }}
       >
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-4xl animate-bounce">🍕</div>
-          <div className="w-10 h-10 border-4 border-[#E8D5B0] border-t-[#C0392B] rounded-full animate-spin" />
-        </div>
+        <div className="spinner" role="status" aria-label="Loading" />
       </div>
     );
   }

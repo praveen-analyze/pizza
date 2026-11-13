@@ -2,6 +2,9 @@ import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
+import { useRef } from "react";
+import { usePageMotion } from "../motion";
+import { AlertIcon, BoxIcon, ArrowRight, CheckIcon } from "../components/Icons";
 
 const STATUS_CONFIG = {
   pending:            { bg: "#FFF8E8", text: "#92620A", border: "#F0D48A", label: "Pending" },
@@ -19,6 +22,8 @@ function Track() {
   const [error, setError] = useState("");
 
   const { user, token } = useContext(AuthContext);
+  const scope = useRef(null);
+  usePageMotion(scope);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -45,94 +50,67 @@ function Track() {
   }, [user, token]);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
+    <div ref={scope} className="min-h-screen bg-[var(--color-dough)]">
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
-        <div className="mb-10">
-          <p className="text-[#C0392B] text-xs font-bold tracking-[0.2em] uppercase mb-2">Live Updates</p>
-          <h1
-            className="text-4xl font-black"
-            style={{ color: "#1A1208", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}
-          >
-            My Orders 📦
-          </h1>
-          <p className="text-[#A89585] mt-2 font-light">Track all your past and current orders</p>
-        </div>
+      <div className="container-x max-w-4xl pt-12 sm:pt-16 pb-24">
+        <header className="mb-8 sm:mb-10">
+          <h1 className="t-h1 text-[var(--color-ink)]">My Orders</h1>
+          <p className="text-[var(--color-muted)] mt-2">Live updates — track all your past and current orders</p>
+        </header>
 
-        {/* Loading Spinner */}
+        {/* Loading skeletons */}
         {loading && (
-          <div className="flex flex-col items-center py-24">
-            <div className="w-14 h-14 border-4 border-[#E8D5B0] border-t-[#C0392B] rounded-full animate-spin mb-5" />
-            <p className="text-[#A89585] font-medium">Loading orders...</p>
+          <div aria-busy="true" className="space-y-5">
+            <p className="sr-only" role="status">Loading orders...</p>
+            {[0, 1].map((i) => (
+              <div key={i} className="panel p-6" aria-hidden="true">
+                <div className="flex justify-between"><div className="skeleton h-5 w-32" /><div className="skeleton h-7 w-24 rounded-full" /></div>
+                <div className="skeleton h-4 w-2/3 mt-6" />
+                <div className="skeleton h-2 w-full mt-8" />
+              </div>
+            ))}
           </div>
         )}
 
         {/* Backend Error Alert Box */}
         {error && !loading && (
-          <div
-            className="max-w-md mx-auto p-6 rounded-2xl text-center border mb-6"
-            style={{ backgroundColor: "#FFF5F3", borderColor: "#F5C0B8" }}
-          >
-            <div className="text-4xl mb-3">⚠️</div>
-            <p className="text-[#C0392B] font-semibold text-sm">{error}</p>
+          <div role="alert" className="alert-error max-w-lg mb-6">
+            <AlertIcon className="w-5 h-5 shrink-0 mt-0.5" />
+            <p>{error}</p>
           </div>
         )}
 
         {/* Empty State Banner */}
         {!loading && !error && orders.length === 0 && (
-          <div
-            className="p-16 text-center rounded-2xl border"
-            style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC", boxShadow: "0 2px 12px rgba(26,18,8,0.04)" }}
-          >
-            <div className="text-6xl mb-5">📦</div>
-            <h2
-              className="text-2xl font-bold mb-2"
-              style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
-            >
-              No Orders Yet
-            </h2>
-            <p className="text-[#A89585] mb-8 font-light">You haven&apos;t placed any orders. Start ordering now!</p>
-            <a
-              href="/menu"
-              className="inline-block px-7 py-3 text-white font-bold rounded-full text-sm tracking-wide transition-all duration-200 hover:scale-105"
-              style={{
-                background: "linear-gradient(135deg, #C0392B, #E85D3A)",
-                boxShadow: "0 4px 16px rgba(192,57,43,0.3)",
-              }}
-            >
-              Order Now →
+          <div className="panel px-6 py-16 sm:p-20 text-center">
+            <span className="grid place-items-center w-20 h-20 mx-auto rounded-full bg-[var(--color-crust)] text-[var(--color-muted)]">
+              <BoxIcon className="w-9 h-9" />
+            </span>
+            <h2 className="t-h2 mt-6 text-[var(--color-ink)]">No Orders Yet</h2>
+            <p className="text-[var(--color-muted)] mt-2 mb-8">You haven&apos;t placed any orders. Start ordering now!</p>
+            <a href="/menu" className="btn btn-primary">
+              Order Now <ArrowRight className="w-5 h-5" />
             </a>
           </div>
         )}
 
         {/* Order History */}
         {!loading && !error && (
-          <div className="space-y-5">
+          <ol className="space-y-5">
             {orders.map((order, idx) => {
               const statusConf = STATUS_CONFIG[order.status] || { bg: "#F5F5F5", text: "#555", border: "#DDD", label: order.status };
               const currentStepIdx = STEPS.indexOf(order.status);
 
               return (
-                <div
-                  key={order._id}
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderColor: "#EDE0CC",
-                    boxShadow: "0 2px 12px rgba(26,18,8,0.06)",
-                  }}
-                >
+                <li key={order._id} className="panel overflow-hidden">
                   {/* Order Header */}
-                  <div
-                    className="px-6 py-4 border-b flex items-center justify-between"
-                    style={{ borderColor: "#EDE0CC", backgroundColor: "#FAF5EE" }}
-                  >
+                  <div className="px-5 sm:px-6 py-4 flex items-center justify-between gap-3 border-b border-[var(--color-sand-soft)]">
                     <div>
-                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>
+                      <h2 className="font-display text-[1.25rem] font-bold tracking-[-0.02em] text-[var(--color-ink)] num">
                         Order #{orders.length - idx}
-                      </p>
-                      <p className="text-sm font-medium" style={{ color: "#7A6354" }}>
+                      </h2>
+                      <p className="text-[0.875rem] text-[var(--color-muted)] mt-0.5">
                         {order.createdAt
                           ? new Date(order.createdAt).toLocaleDateString("en-IN", {
                               day: "numeric",
@@ -143,100 +121,95 @@ function Track() {
                       </p>
                     </div>
                     <span
-                      className="px-3.5 py-1.5 rounded-full text-xs font-bold border"
-                      style={{ backgroundColor: statusConf.bg, color: statusConf.text, borderColor: statusConf.border }}
+                      className="badge text-[0.8125rem] px-3 py-1.5"
+                      style={{ backgroundColor: statusConf.bg, color: statusConf.text, boxShadow: `inset 0 0 0 1px ${statusConf.border}` }}
                     >
                       {statusConf.label}
                     </span>
                   </div>
 
                   {/* Order Body */}
-                  <div className="px-6 py-5">
+                  <div className="px-5 sm:px-6 py-5">
                     {order.items && order.items.length > 0 && (
                       <div className="mb-5">
-                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#A89585" }}>Items</p>
-                        <div className="flex flex-wrap gap-2">
+                        <p className="t-meta mb-3">Items</p>
+                        <ul className="flex flex-wrap gap-2">
                           {order.items.map((item) => (
-                            <div
+                            <li
                               key={item._id || item}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                              style={{ backgroundColor: "#FAF5EE", border: "1px solid #EDE0CC" }}
+                              className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-[var(--color-crust)]"
                             >
                               {(item.imageUrl || item.image) && (
                                 <img
                                   src={item.imageUrl || (item.image ? (item.image.startsWith("http") ? item.image : "/" + item.image) : "/pizza.jpg")}
                                   alt={item.name}
-                                  className="w-6 h-6 rounded-lg object-cover"
+                                  width="28"
+                                  height="28"
+                                  loading="lazy"
+                                  className="w-7 h-7 rounded-full object-cover"
                                 />
                               )}
-                              <span className="text-xs font-semibold" style={{ color: "#3D2B1F" }}>
+                              <span className="text-[0.875rem] font-semibold text-[var(--color-ink-2)]">
                                 {item.name || "Item"}
                               </span>
-                            </div>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
                     )}
 
-                    <div className="flex items-end justify-between mb-6">
-                      <div>
-                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5" style={{ color: "#A89585" }}>
-                          Delivery Address
-                        </p>
-                        <p className="text-sm font-medium" style={{ color: "#3D2B1F", maxWidth: "280px" }}>
+                    <div className="flex items-end justify-between gap-6 mb-7">
+                      <div className="min-w-0">
+                        <p className="t-meta mb-1.5">Delivery Address</p>
+                        <p className="text-[0.9375rem] font-medium text-[var(--color-ink-2)] max-w-[32ch]">
                           {order.deliveryAddress || "—"}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: "#A89585" }}>Total</p>
-                        <p
-                          className="text-2xl font-black"
-                          style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
-                        >
-                          ₹{order.totalAmount}
-                        </p>
+                      <div className="text-right shrink-0">
+                        <p className="t-meta mb-1">Total</p>
+                        <p className="t-price text-[1.75rem] leading-none">₹{order.totalAmount}</p>
                       </div>
                     </div>
 
                     {/* Progress tracking */}
-                    <div>
-                      <div className="flex items-center">
-                        {STEPS.map((step, i) => {
-                          const active = i <= currentStepIdx;
-                          const isLast = i === STEPS.length - 1;
-                          return (
-                            <div key={step} className="flex items-center flex-1 last:flex-none">
-                              <div
-                                className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-300"
-                                style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
-                              />
+                    <ol className="grid grid-cols-4" aria-label="Order progress">
+                      {STEPS.map((step, i) => {
+                        const active = i <= currentStepIdx;
+                        const current = i === currentStepIdx;
+                        const isLast = i === STEPS.length - 1;
+                        return (
+                          <li key={step} className="relative flex flex-col items-start" aria-current={current ? "step" : undefined}>
+                            <div className="flex items-center w-full">
+                              <span
+                                className={`relative z-10 grid place-items-center w-6 h-6 rounded-full shrink-0 transition-colors duration-300 ${
+                                  active ? "bg-[var(--color-tomato)] text-white" : "bg-[var(--color-sand-soft)] text-transparent"
+                                } ${current ? "ring-4 ring-[rgb(192_57_43/0.18)]" : ""}`}
+                              >
+                                <CheckIcon className="w-3.5 h-3.5" />
+                              </span>
                               {!isLast && (
-                                <div
-                                  className="flex-1 h-0.5 mx-1 transition-all duration-500"
-                                  style={{ backgroundColor: active ? "#C0392B" : "#E8D5B0" }}
+                                <span
+                                  className="flex-1 h-[3px] mx-1.5 rounded-full transition-colors duration-500"
+                                  style={{ backgroundColor: i < currentStepIdx ? "var(--color-tomato)" : "var(--color-sand-soft)" }}
                                 />
                               )}
                             </div>
-                          );
-                        })}
-                      </div>
-                      <div className="flex justify-between mt-2">
-                        {STEP_LABELS.map((label, i) => (
-                          <span
-                            key={label}
-                            className="text-[10px] font-semibold"
-                            style={{ color: i <= currentStepIdx ? "#C0392B" : "#A89585" }}
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                            <span
+                              className={`mt-2 text-[0.75rem] sm:text-[0.8125rem] font-semibold ${
+                                active ? "text-[var(--color-tomato)]" : "text-[var(--color-muted)]"
+                              }`}
+                            >
+                              {STEP_LABELS[i]}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
         )}
       </div>
     </div>

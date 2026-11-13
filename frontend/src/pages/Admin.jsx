@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
+import { useRef } from "react";
+import { usePageMotion } from "../motion";
+import { BoxIcon, PlusIcon, SliceIcon, UsersIcon, ClockIcon, CheckIcon, RupeeIcon, TrashIcon, RefreshIcon } from "../components/Icons";
 
 const STATUS_STYLES = {
   pending:            { bg: "#FFF8E8", text: "#92620A", border: "#F0D48A",  dot: "#D4A017"  },
@@ -11,7 +14,14 @@ const STATUS_STYLES = {
 };
 
 const TABS = ["Orders", "Add Pizza", "Manage Pizzas", "Customers"];
-const TAB_ICONS = { Orders: "📦", "Add Pizza": "➕", "Manage Pizzas": "🍕", Customers: "👥" };
+const TAB_ICONS = { Orders: BoxIcon, "Add Pizza": PlusIcon, "Manage Pizzas": SliceIcon, Customers: UsersIcon };
+
+const Spinner = () => (
+  <div className="flex flex-col items-center py-24" role="status">
+    <div className="spinner mb-5" />
+    <p className="text-[#6E5646] font-medium">Loading...</p>
+  </div>
+);
 
 const EMPTY_PIZZA = { name: "", price: "", image: "", category: "" };
 
@@ -26,6 +36,8 @@ function Admin() {
   const [customersLoading, setCustomersLoading] = useState(false);
   const [addLoading, setAddLoading]       = useState(false);
   const { user, token } = useContext(AuthContext);
+  const scope = useRef(null);
+  usePageMotion(scope);
 
   const getOrders = useCallback(async () => {
     if (!user || !token) return;
@@ -184,52 +196,45 @@ function Admin() {
   const focusOn = (e) => { e.target.style.borderColor = "#C0392B"; e.target.style.boxShadow = "0 0 0 3px rgba(192,57,43,0.1)"; };
   const focusOff = (e) => { e.target.style.borderColor = "#E8D5B0"; e.target.style.boxShadow = "none"; };
 
-  const Spinner = () => (
-    <div className="flex flex-col items-center py-24">
-      <div className="w-14 h-14 border-4 border-[#E8D5B0] border-t-[#C0392B] rounded-full animate-spin mb-5" />
-      <p className="text-[#A89585] font-medium">Loading...</p>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
+    <div ref={scope} className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-12">
 
         {/* Header */}
         <div className="mb-10">
-          <p className="text-[#C0392B] text-xs font-bold tracking-[0.2em] uppercase mb-2">Control Center</p>
           <h1
-            className="text-4xl font-black"
-            style={{ color: "#1A1208", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}
+            className="t-h1"
+            style={{ color: "#1A1208" }}
           >
             Admin Dashboard
           </h1>
-          <p className="text-[#A89585] mt-1.5 font-light">Manage orders, pizzas and your restaurant</p>
+          <p className="text-[#6E5646] mt-1.5 font-light">Control center — manage orders, pizzas and your restaurant</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {[
-            { label: "Total Orders",   value: stats.total,         icon: "📦", bg: "#EBF4FF", accent: "#1A5C8A", border: "#A8D0F0" },
-            { label: "Pending",       value: stats.pending,       icon: "⏳", bg: "#FFF8E8", accent: "#92620A", border: "#F0D48A" },
-            { label: "Delivered",     value: stats.delivered,     icon: "✅", bg: "#EAFAF0", accent: "#1A6B40", border: "#90D8B0" },
-            { label: "Revenue",       value: `₹${stats.revenue}`, icon: "💰", bg: "#FFF5F3", accent: "#C0392B", border: "#F5C0B8" },
+            { label: "Total Orders",   value: stats.total,         icon: BoxIcon, bg: "#EBF4FF", accent: "#1A5C8A", border: "#A8D0F0" },
+            { label: "Pending",       value: stats.pending,       icon: ClockIcon, bg: "#FFF8E8", accent: "#92620A", border: "#F0D48A" },
+            { label: "Delivered",     value: stats.delivered,     icon: CheckIcon, bg: "#EAFAF0", accent: "#1A6B40", border: "#90D8B0" },
+            { label: "Revenue",       value: `₹${stats.revenue}`, icon: RupeeIcon, bg: "#FFF5F3", accent: "#C0392B", border: "#F5C0B8" },
           ].map((s) => (
             <div
               key={s.label}
               className="rounded-2xl p-5 border"
               style={{ backgroundColor: s.bg, borderColor: s.border }}
             >
-              <div className="text-3xl mb-3">{s.icon}</div>
+              <s.icon className="w-6 h-6 mb-3" style={{ color: s.accent }} />
               <div
-                className="text-2xl font-black mb-0.5"
-                style={{ color: s.accent, fontFamily: "'Georgia', serif" }}
+                className="text-[1.75rem] font-extrabold tracking-[-0.02em] mb-0.5 num"
+                style={{ color: s.accent, fontFamily: "var(--font-display)" }}
               >
                 {s.value}
               </div>
-              <div className="text-xs font-semibold tracking-wider uppercase" style={{ color: s.accent + "99" }}>
+              <div className="text-xs font-semibold tracking-wider uppercase" style={{ color: s.accent }}>
                 {s.label}
               </div>
             </div>
@@ -238,21 +243,21 @@ function Admin() {
 
         {/* Tabs */}
         <div
-          className="flex gap-1 p-1 rounded-2xl mb-10 w-fit"
+          className="flex gap-1 p-1 rounded-2xl mb-10 max-w-full w-fit overflow-x-auto"
           style={{ backgroundColor: "#F0E8D8", border: "1px solid #E8D5B0" }}
         >
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 flex items-center gap-1.5"
+              className="min-h-[44px] px-4 sm:px-5 py-2.5 rounded-xl text-[14px] font-semibold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5"
               style={
                 activeTab === tab
                   ? { backgroundColor: "#FFFFFF", color: "#1A1208", boxShadow: "0 2px 8px rgba(26,18,8,0.1)" }
                   : { color: "#7A6354" }
               }
             >
-              <span>{TAB_ICONS[tab]}</span>
+              {(() => { const I = TAB_ICONS[tab]; return <I className="w-[18px] h-[18px]" />; })()}
               <span>{tab}</span>
             </button>
           ))}
@@ -266,11 +271,11 @@ function Admin() {
                 className="p-16 text-center rounded-2xl border"
                 style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
               >
-                <div className="text-6xl mb-4">📦</div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}>
+                <BoxIcon className="w-14 h-14 mx-auto mb-4 text-[#C9B48E]" />
+                <h2 className="text-2xl font-bold mb-2" style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}>
                   No Orders Yet
                 </h2>
-                <p className="text-[#A89585]">Orders placed by customers will appear here.</p>
+                <p className="text-[#6E5646]">Orders placed by customers will appear here.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -290,10 +295,10 @@ function Admin() {
                         <div className="flex items-center gap-3">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: style.dot }} />
                           <div>
-                            <p className="font-bold text-[15px]" style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}>
+                            <p className="font-bold text-[15px]" style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}>
                               {order.customerName}
                             </p>
-                            <p className="text-xs font-medium" style={{ color: "#A89585" }}>{order.customerEmail}</p>
+                            <p className="text-xs font-medium" style={{ color: "#6E5646" }}>{order.customerEmail}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -305,7 +310,7 @@ function Admin() {
                           </span>
                           <span
                             className="font-black text-lg"
-                            style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
+                            style={{ color: "#C0392B", fontFamily: "var(--font-display)" }}
                           >
                             ₹{order.totalAmount}
                           </span>
@@ -334,7 +339,7 @@ function Admin() {
                                   {item.name || "Item"}
                                 </span>
                                 {item.price && (
-                                  <span className="text-[10px] font-bold" style={{ color: "#C0392B" }}>₹{item.price}</span>
+                                  <span className="text-[12px] font-bold" style={{ color: "#C0392B" }}>₹{item.price}</span>
                                 )}
                               </div>
                             ))}
@@ -355,7 +360,7 @@ function Admin() {
                               <button
                                 key={btn.status}
                                 onClick={() => updateStatus(order._id, btn.status)}
-                                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200"
+                                className="min-h-[40px] px-3.5 py-2 rounded-xl text-[13px] font-bold transition-all duration-200"
                                 style={{
                                   backgroundColor: s.bg,
                                   color: s.text,
@@ -370,10 +375,10 @@ function Admin() {
                           })}
                           <button
                             onClick={() => deleteOrder(order._id)}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ml-auto"
+                            className="min-h-[40px] px-3.5 py-2 rounded-xl text-[13px] font-bold transition-all duration-200 ml-auto"
                             style={{ backgroundColor: "#FFF5F3", color: "#C0392B", border: "1px solid #F5C0B8" }}
                           >
-                            🗑 Delete
+                            <span className="inline-flex items-center gap-1.5"><TrashIcon className="w-4 h-4" />Delete</span>
                           </button>
                         </div>
                       </div>
@@ -394,7 +399,7 @@ function Admin() {
             >
               <h2
                 className="text-2xl font-black mb-7"
-                style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
+                style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}
               >
                 Add New Pizza
               </h2>
@@ -422,7 +427,7 @@ function Admin() {
                   <input type="text" name="image" value={pizza.image} onChange={handleChange}
                     placeholder="e.g. margherita.jpg" className={inputCls} style={inputSty}
                     onFocus={focusOn} onBlur={focusOff} />
-                  <p className="text-[#A89585] text-xs mt-1.5">Place image in the /public folder</p>
+                  <p className="text-[#6E5646] text-xs mt-1.5">Place image in the /public folder</p>
                 </div>
                 <div>
                   <label className="block text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: "#7A6354" }}>
@@ -444,7 +449,7 @@ function Admin() {
                     className="p-4 rounded-xl border"
                     style={{ backgroundColor: "#FAF5EE", borderColor: "#E8D5B0" }}
                   >
-                    <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#A89585" }}>
+                    <p className="text-[12px] font-bold tracking-[0.15em] uppercase mb-3" style={{ color: "#6E5646" }}>
                       Preview
                     </p>
                     <div className="flex items-center gap-3">
@@ -454,7 +459,7 @@ function Admin() {
                           style={{ border: "1px solid #EDE0CC" }} />
                       )}
                       <div className="flex-1">
-                        <p className="font-bold" style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}>
+                        <p className="font-bold" style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}>
                           {pizza.name}
                         </p>
                         <p className="font-black text-sm" style={{ color: "#C0392B" }}>
@@ -478,7 +483,7 @@ function Admin() {
                   disabled={addLoading}
                   className="w-full py-3.5 text-white font-bold rounded-xl text-[14px] tracking-wide transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
-                    background: "linear-gradient(135deg, #C0392B, #E85D3A)",
+                    background: "#C0392B",
                     boxShadow: "0 6px 20px rgba(192,57,43,0.35)",
                   }}
                 >
@@ -490,7 +495,7 @@ function Admin() {
                       </svg>
                       Adding Pizza...
                     </span>
-                  ) : "Add Pizza 🍕"}
+                  ) : "Add Pizza"}
                 </button>
               </form>
             </div>
@@ -503,7 +508,7 @@ function Admin() {
             <div className="flex items-center justify-between mb-6">
               <h2
                 className="text-xl font-bold"
-                style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
+                style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}
               >
                 {pizzas.length} Pizza{pizzas.length !== 1 ? "s" : ""}
               </h2>
@@ -513,7 +518,7 @@ function Admin() {
                   className="px-4 py-2 text-xs font-bold rounded-xl border transition-all duration-200"
                   style={{ backgroundColor: "#FFF5F3", color: "#C0392B", borderColor: "#F5C0B8" }}
                 >
-                  🧹 Clean Up Duplicates
+                  <span className="inline-flex items-center gap-1.5"><RefreshIcon className="w-4 h-4" />Clean Up Duplicates</span>
                 </button>
                 <button
                   onClick={getPizzas}
@@ -530,14 +535,14 @@ function Admin() {
                 className="p-16 text-center rounded-2xl border"
                 style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
               >
-                <div className="text-6xl mb-4">🍕</div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}>
+                <SliceIcon className="w-14 h-14 mx-auto mb-4 text-[#C9B48E]" />
+                <h2 className="text-2xl font-bold mb-2" style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}>
                   No Pizzas Yet
                 </h2>
                 <button
                   onClick={() => setActiveTab("Add Pizza")}
                   className="mt-4 px-7 py-3 text-white font-bold rounded-full text-sm transition-all hover:scale-105"
-                  style={{ background: "linear-gradient(135deg, #C0392B, #E85D3A)", boxShadow: "0 4px 16px rgba(192,57,43,0.3)" }}
+                  style={{ background: "#C0392B", boxShadow: "0 4px 16px rgba(192,57,43,0.3)" }}
                 >
                   Add First Pizza
                 </button>
@@ -560,11 +565,11 @@ function Admin() {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-5xl">🍕</div>
+                        <div className="w-full h-full flex items-center justify-center text-[#C9B48E]"><SliceIcon className="w-12 h-12" /></div>
                       )}
                       {p.category && (
                         <span
-                          className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                          className="absolute top-2.5 left-2.5 text-[12px] font-bold px-2.5 py-1 rounded-full"
                           style={{ backgroundColor: "#C0392B", color: "#FFFFFF" }}
                         >
                           {p.category}
@@ -574,13 +579,13 @@ function Admin() {
                     <div className="p-4">
                       <h3
                         className="font-bold mb-0.5"
-                        style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
+                        style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}
                       >
                         {p.name}
                       </h3>
                       <p
                         className="font-black text-lg mb-3"
-                        style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
+                        style={{ color: "#C0392B", fontFamily: "var(--font-display)" }}
                       >
                         ₹{p.price}
                       </p>
@@ -589,7 +594,7 @@ function Admin() {
                         className="w-full py-2 text-xs font-bold rounded-xl border transition-all duration-200"
                         style={{ backgroundColor: "#FFF5F3", color: "#C0392B", borderColor: "#F5C0B8" }}
                       >
-                        🗑 Delete
+                        <span className="inline-flex items-center gap-1.5"><TrashIcon className="w-4 h-4" />Delete</span>
                       </button>
                     </div>
                   </div>
@@ -605,7 +610,7 @@ function Admin() {
             <div className="flex items-center justify-between mb-6">
               <h2
                 className="text-xl font-bold"
-                style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
+                style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}
               >
                 {customers.length} Customer{customers.length !== 1 ? "s" : ""}
               </h2>
@@ -623,8 +628,8 @@ function Admin() {
                 className="p-16 text-center rounded-2xl border"
                 style={{ backgroundColor: "#FFFFFF", borderColor: "#EDE0CC" }}
               >
-                <div className="text-6xl mb-4">👥</div>
-                <h2 className="text-2xl font-bold" style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}>
+                <UsersIcon className="w-14 h-14 mx-auto mb-4 text-[#C9B48E]" />
+                <h2 className="text-2xl font-bold" style={{ color: "#1A1208", fontFamily: "var(--font-display)" }}>
                   No Customers Yet
                 </h2>
               </div>
@@ -641,7 +646,7 @@ function Admin() {
                           <th
                             key={h}
                             className="p-4 text-[11px] font-bold tracking-wider uppercase"
-                            style={{ color: "#A89585" }}
+                            style={{ color: "#6E5646" }}
                           >
                             {h}
                           </th>
@@ -667,7 +672,7 @@ function Admin() {
                               </ul>
                             ) : "—"}
                           </td>
-                          <td className="p-4 text-xs" style={{ color: "#A89585" }}>
+                          <td className="p-4 text-xs" style={{ color: "#6E5646" }}>
                             {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}
                           </td>
                         </tr>

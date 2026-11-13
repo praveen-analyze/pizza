@@ -2,6 +2,8 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
+import { AuthShell, Spinner } from "../components/AuthShell";
+import { AlertIcon } from "../components/Icons";
 
 function LogIn() {
   const navigate = useNavigate();
@@ -38,163 +40,75 @@ function LogIn() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ backgroundColor: "#FEFAF4" }}
-    >
-      {/* Background texture */}
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `radial-gradient(circle at 20% 50%, #E85D3A22 0%, transparent 50%),
-                            radial-gradient(circle at 80% 20%, #C0392B18 0%, transparent 50%)`,
-        }}
-      />
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="text-5xl mb-4">🍕</div>
-          <h1
-            className="text-3xl font-black mb-2"
-            style={{ color: "#1A1208", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}
-          >
-            Welcome back!
-          </h1>
-          <p className="text-[#A89585] font-light">Sign in to your Dominoze Bizza account</p>
+    <AuthShell title="Welcome back!" subtitle="Sign in to your Dominoze Bizza account">
+      <form onSubmit={handleLogin} noValidate={false}>
+        {/* Email */}
+        <div className="mb-5">
+          <label htmlFor="login-email" className="t-label block mb-2">Email Address</label>
+          <input
+            id="login-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="field"
+            aria-invalid={error ? true : undefined}
+          />
         </div>
 
-        <div
-          className="rounded-2xl p-8"
-          style={{
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #EDE0CC",
-            boxShadow: "0 8px 40px rgba(26,18,8,0.1)",
-          }}
-        >
-          <form onSubmit={handleLogin}>
-            {/* Email */}
-            <div className="mb-5">
-              <label
-                className="block text-xs font-bold mb-2 tracking-wide uppercase"
-                style={{ color: "#7A6354" }}
-              >
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{
-                  color: "#1A1208",
-                  border: "1.5px solid #E8D5B0",
-                  backgroundColor: "#FEFAF4",
-                }}
-                onFocus={e => {
-                  e.target.style.borderColor = "#C0392B";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(192,57,43,0.1)";
-                }}
-                onBlur={e => {
-                  e.target.style.borderColor = "#E8D5B0";
-                  e.target.style.boxShadow = "none";
-                }}
-              />
-            </div>
-
-            {/* Password */}
-            <div className="mb-5">
-              <label
-                className="block text-xs font-bold mb-2 tracking-wide uppercase"
-                style={{ color: "#7A6354" }}
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all pr-16"
-                  style={{
-                    color: "#1A1208",
-                    border: "1.5px solid #E8D5B0",
-                    backgroundColor: "#FEFAF4",
-                  }}
-                  onFocus={e => {
-                    e.target.style.borderColor = "#C0392B";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(192,57,43,0.1)";
-                  }}
-                  onBlur={e => {
-                    e.target.style.borderColor = "#E8D5B0";
-                    e.target.style.boxShadow = "none";
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold tracking-wider uppercase transition-colors"
-                  style={{ color: "#A89585" }}
-                  onMouseEnter={e => e.target.style.color = "#C0392B"}
-                  onMouseLeave={e => e.target.style.color = "#A89585"}
-                >
-                  {showPass ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div
-                className="mb-5 p-3.5 rounded-xl text-sm font-medium"
-                style={{ backgroundColor: "#FFF5F3", border: "1px solid #F5C0B8", color: "#C0392B" }}
-              >
-                {error}
-              </div>
-            )}
-
-            {/* Register link */}
-            <p className="text-xs text-[#A89585] mb-6">
-              New here?{" "}
-              <button
-                type="button"
-                onClick={() => navigate("/signup")}
-                className="font-bold transition-colors"
-                style={{ color: "#C0392B" }}
-              >
-                Create an account →
-              </button>
-            </p>
-
+        {/* Password */}
+        <div className="mb-5">
+          <label htmlFor="login-password" className="t-label block mb-2">Password</label>
+          <div className="relative">
+            <input
+              id="login-password"
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+              className="field pr-20"
+              aria-invalid={error ? true : undefined}
+            />
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 text-white font-bold rounded-xl text-[14px] tracking-wide transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                background: "linear-gradient(135deg, #C0392B, #E85D3A)",
-                boxShadow: "0 6px 20px rgba(192,57,43,0.35)",
-              }}
+              type="button"
+              onClick={() => setShowPass(!showPass)}
+              aria-pressed={showPass}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 min-h-[44px] px-3 rounded-lg text-[0.8125rem] font-bold text-[var(--color-muted)] hover:text-[var(--color-tomato)] transition-colors"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2.5">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Signing In...
-                </span>
-              ) : "Sign In"}
+              {showPass ? "Hide" : "Show"}
             </button>
-          </form>
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Error */}
+        {error && (
+          <div role="alert" className="alert-error mb-5">
+            <AlertIcon className="w-5 h-5 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <button type="submit" disabled={loading} className="btn btn-primary btn-block mt-2">
+          {loading ? <Spinner label="Signing In..." /> : "Sign In"}
+        </button>
+
+        {/* Register link */}
+        <p className="text-[0.9375rem] text-[var(--color-muted)] mt-6 text-center">
+          New here?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/signup")}
+            className="font-bold text-[var(--color-tomato)] underline-offset-4 hover:underline min-h-[44px]"
+          >
+            Create an account →
+          </button>
+        </p>
+      </form>
+    </AuthShell>
   );
 }
 

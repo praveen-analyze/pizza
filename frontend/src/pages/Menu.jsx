@@ -1,8 +1,13 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
+import { usePageMotion, useSplitReveal, useGSAP, ScrollTrigger, flyToCart } from "../motion";
+import { SearchIcon, AlertIcon, PlateIcon, PlusIcon } from "../components/Icons";
+
+const CATEGORY_ORDER = ["Veg", "Non-Veg", "Special"];
+const slug = (c) => "cat-" + c.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 function Menu() {
   const [pizzas, setPizzas] = useState([]);
@@ -11,6 +16,9 @@ function Menu() {
   const [search, setSearch] = useState("");
   const { addToCart } = useContext(CartContext);
   const navigate = useNavigate();
+  const scope = useRef(null);
+  const headline = useRef(null);
+  const [activeCat, setActiveCat] = useState("");
 
   const handleAddToCart = (pizza) => {
     addToCart(pizza);
@@ -40,154 +48,230 @@ function Menu() {
   );
 
   const categoryColor = {
-    Veg: { bg: "#E8F5E9", text: "#2E7D32", border: "#A5D6A7" },
-    "Non-Veg": { bg: "#FBE9E7", text: "#BF360C", border: "#FFAB91" },
-    Special: { bg: "#FFF8E1", text: "#E65100", border: "#FFCC80" },
+    Veg: { bg: "#E8F5E9", text: "#1E6B23", dot: "#2E7D32" },
+    "Non-Veg": { bg: "#FBE9E7", text: "#A3300B", dot: "#BF360C" },
+    Special: { bg: "#FFF3DC", text: "#9A4A00", dot: "#E65100" },
   };
 
+  // Presentation-only grouping of the same filtered list by its existing category field.
+  const groups = [];
+  const seen = new Map();
+  for (const p of filtered) {
+    const c = p.category || "More";
+    if (!seen.has(c)) {
+      seen.set(c, []);
+      groups.push(c);
+    }
+    seen.get(c).push(p);
+  }
+  groups.sort((a, b) => {
+    const ia = CATEGORY_ORDER.indexOf(a), ib = CATEGORY_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  const groupKey = groups.join("|");
+
+  usePageMotion(scope, { mode: "expressive", deps: [loading] });
+  useSplitReveal(headline);
+
+  // Search changes layout: recompute trigger positions so no card stays hidden.
+  useEffect(() => {
+    ScrollTrigger.refresh();
+  }, [search]);
+
+  // Scroll-spy for the category strip.
+  useGSAP(
+    () => {
+      const triggers = groups.map((c) =>
+        ScrollTrigger.create({
+          trigger: `#${slug(c)}`,
+          start: "top 45%",
+          end: "bottom 45%",
+          onToggle: (self) => self.isActive && setActiveCat(c),
+        })
+      );
+      return () => triggers.forEach((t) => t.kill());
+    },
+    { scope, dependencies: [groupKey, loading], revertOnUpdate: true }
+  );
+
+  const imgSrc = (pizza) =>
+    pizza.imageUrl || (pizza.image ? (pizza.image.startsWith("http") ? pizza.image : "/" + pizza.image) : "/pizza.jpg");
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FEFAF4" }}>
+    <div ref={scope} className="min-h-screen bg-[var(--color-dough)]">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-14">
+      <div className="container-x pt-12 sm:pt-16 pb-24">
         {/* Header */}
-        <div className="text-center mb-14">
-          <p className="text-[#C0392B] text-xs font-bold tracking-[0.2em] uppercase mb-4">Handcrafted Daily</p>
-          <h1
-            className="text-5xl font-black mb-4"
-            style={{ color: "#1A1208", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}
-          >
-            Our Menu <span className="text-[#C0392B]">🍕</span>
-          </h1>
-          <p className="text-[#7A6354] text-lg mb-10 font-light">
-            Handcrafted with love, delivered to your door.
-          </p>
+        <header className="grid lg:grid-cols-[1fr_auto] gap-8 items-end mb-10 sm:mb-12">
+          <div>
+            <h1 ref={headline} className="t-display text-[var(--color-ink)]">Our Menu</h1>
+            <p className="t-lede mt-4 measure">Handcrafted daily with love, delivered to your door.</p>
+          </div>
 
           {/* Search Bar */}
-          <div className="max-w-md mx-auto relative">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#A89585]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="relative w-full lg:w-[22rem]">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-muted)] pointer-events-none" />
             <input
               type="text"
               placeholder="Search pizzas..."
+              aria-label="Search pizzas"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-5 py-3.5 rounded-2xl border text-[#1A1208] placeholder-[#A89585] text-sm font-medium outline-none focus:ring-2 focus:ring-[#C0392B]/30 transition-all"
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderColor: "#E8D5B0",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-              }}
+              className="field pl-12 bg-white shadow-[var(--shadow-sm)]"
             />
           </div>
-        </div>
+        </header>
 
-        {/* Loading */}
+        {/* Category strip (sticky, scroll-spy) */}
+        {!loading && !error && groups.length > 1 && (
+          <nav
+            aria-label="Categories"
+            className="sticky top-[60px] z-30 -mx-[var(--gutter)] px-[var(--gutter)] py-3 mb-8 bg-[rgb(254_250_244/0.92)] backdrop-blur-md border-b border-[var(--color-sand-soft)]"
+          >
+            <ul className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+              {groups.map((c) => {
+                const active = (activeCat || groups[0]) === c;
+                return (
+                  <li key={c}>
+                    <a
+                      href={`#${slug(c)}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const el = document.getElementById(slug(c));
+                        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                        el?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                        setActiveCat(c);
+                      }}
+                      aria-current={active ? "true" : undefined}
+                      className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full text-[0.9375rem] font-semibold whitespace-nowrap transition-colors duration-200 ${
+                        active
+                          ? "bg-[var(--color-ink)] text-[var(--color-dough)]"
+                          : "text-[var(--color-ink-2)] hover:bg-[var(--color-crust)]"
+                      }`}
+                    >
+                      {categoryColor[c] && (
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: categoryColor[c].dot }} aria-hidden="true" />
+                      )}
+                      {c}
+                      <span className="num opacity-60 text-[0.8125rem]">{seen.get(c).length}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        )}
+
+        {/* Loading (skeletons) */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="w-14 h-14 border-4 border-[#E8D5B0] border-t-[#C0392B] rounded-full animate-spin mb-5" />
-            <p className="text-[#A89585] font-medium">Loading pizzas...</p>
+          <div aria-busy="true">
+            <p className="sr-only" role="status">Loading pizzas...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i}>
+                  <div className="skeleton aspect-[4/3.4] rounded-[var(--radius-card)]" />
+                  <div className="skeleton h-5 w-2/3 mt-4" />
+                  <div className="skeleton h-4 w-full mt-3" />
+                  <div className="flex justify-between items-center mt-5">
+                    <div className="skeleton h-7 w-20" />
+                    <div className="skeleton h-11 w-11 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-[var(--color-muted)] font-medium mt-10" aria-hidden="true">Loading pizzas...</p>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div
-            className="max-w-md mx-auto p-6 rounded-2xl text-center border"
-            style={{ backgroundColor: "#FFF5F3", borderColor: "#F5C0B8" }}
-          >
-            <div className="text-4xl mb-3">⚠️</div>
-            <p className="text-[#C0392B] font-semibold text-sm">{error}</p>
+          <div role="alert" className="max-w-lg mx-auto alert-error">
+            <AlertIcon className="w-5 h-5 shrink-0 mt-0.5" />
+            <p>{error}</p>
           </div>
         )}
 
         {/* Empty */}
         {!loading && !error && filtered.length === 0 && (
           <div className="text-center py-24">
-            <div className="text-6xl mb-5">🍽️</div>
-            <h2
-              className="text-2xl font-bold mb-2"
-              style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
-            >
-              No Pizzas Found
-            </h2>
-            <p className="text-[#A89585]">Try a different search term</p>
+            <PlateIcon className="w-14 h-14 mx-auto text-[var(--color-sand)]" />
+            <h2 className="t-h2 mt-5 text-[var(--color-ink)]">No Pizzas Found</h2>
+            <p className="text-[var(--color-muted)] mt-2">Try a different search term</p>
           </div>
         )}
 
-        {/* Pizza Grid */}
+        {/* Pizza grid, grouped by category */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filtered.map((pizza) => {
-              const cat = categoryColor[pizza.category] || {};
-              return (
-                <div
-                  key={pizza._id}
-                  className="rounded-2xl overflow-hidden hover:-translate-y-2 transition-all duration-300 group"
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    border: "1px solid #EDE0CC",
-                    boxShadow: "0 2px 12px rgba(26,18,8,0.06)",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = "0 16px 40px rgba(26,18,8,0.14)"}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = "0 2px 12px rgba(26,18,8,0.06)"}
-                >
-                  {/* Image */}
-                  <div className="relative overflow-hidden h-52" style={{ backgroundColor: "#F5EFE6" }}>
-                    <img
-                      src={pizza.imageUrl || (pizza.image ? (pizza.image.startsWith("http") ? pizza.image : "/" + pizza.image) : "/pizza.jpg")}
-                      alt={pizza.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    {pizza.category && cat.bg && (
-                      <span
-                        className="absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{ backgroundColor: cat.bg, color: cat.text, border: `1px solid ${cat.border}` }}
-                      >
-                        {pizza.category}
-                      </span>
-                    )}
-                    {/* Gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
+          <div className="space-y-16 sm:space-y-20">
+            {groups.map((c) => (
+              <section key={c} id={slug(c)} aria-labelledby={`${slug(c)}-h`} className="scroll-mt-36">
+                {groups.length > 1 && (
+                  <h2 id={`${slug(c)}-h`} className="t-h2 text-[var(--color-ink)] mb-6 sm:mb-8 flex items-baseline gap-3">
+                    {c}
+                    <span className="num text-[var(--step-0)] font-sans font-semibold text-[var(--color-muted)] tracking-normal">
+                      {seen.get(c).length}
+                    </span>
+                  </h2>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
+                  {seen.get(c).map((pizza) => {
+                    const cat = categoryColor[pizza.category] || {};
+                    return (
+                      <article key={pizza._id} data-batch className="group flex flex-col">
+                        {/* Image */}
+                        <div className="relative overflow-hidden rounded-[var(--radius-card)] aspect-[4/3.4] bg-[var(--color-crust)] shadow-[var(--shadow-sm)] transition-shadow duration-500 group-hover:shadow-[var(--shadow-lg)]">
+                          <img
+                            src={imgSrc(pizza)}
+                            alt={pizza.name}
+                            loading="lazy"
+                            decoding="async"
+                            width="640"
+                            height="544"
+                            data-img-parallax
+                            className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-500 group-hover:saturate-[1.15]"
+                          />
+                          {pizza.category && cat.bg && (
+                            <span className="badge absolute top-3 left-3 shadow-[var(--shadow-sm)]" style={{ backgroundColor: cat.bg, color: cat.text }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.dot }} aria-hidden="true" />
+                              {pizza.category}
+                            </span>
+                          )}
+                        </div>
 
-                  {/* Content */}
-                  <div className="p-5">
-                    <h2
-                      className="text-[16px] font-bold mb-1"
-                      style={{ color: "#1A1208", fontFamily: "'Georgia', serif" }}
-                    >
-                      {pizza.name}
-                    </h2>
-                    {pizza.description && (
-                      <p className="text-[#A89585] text-xs mb-3 line-clamp-2 leading-relaxed">{pizza.description}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-4">
-                      <div>
-                        <span className="text-[11px] text-[#A89585] font-medium block">Price</span>
-                        <span
-                          className="text-xl font-black"
-                          style={{ color: "#C0392B", fontFamily: "'Georgia', serif" }}
-                        >
-                          ₹{pizza.price}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleAddToCart(pizza)}
-                        className="px-4 py-2 text-white rounded-xl text-xs font-bold tracking-wide transition-all duration-200 hover:scale-105"
-                        style={{
-                          background: "linear-gradient(135deg, #C0392B, #E85D3A)",
-                          boxShadow: "0 4px 12px rgba(192,57,43,0.3)",
-                        }}
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
+                        {/* Content */}
+                        <div className="pt-4 flex flex-col flex-1">
+                          <h3 className="font-display text-[1.3125rem] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+                            {pizza.name}
+                          </h3>
+                          {pizza.description && (
+                            <p className="text-[var(--color-muted)] text-[0.9375rem] mt-1 line-clamp-2 leading-relaxed">{pizza.description}</p>
+                          )}
+                          <div className="flex items-center justify-between gap-3 mt-auto pt-4">
+                            <p>
+                              <span className="sr-only">Price </span>
+                              <span className="t-price text-[1.625rem] inline-block transition-transform duration-300 group-hover:-translate-y-0.5">
+                                ₹{pizza.price}
+                              </span>
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                flyToCart(e.currentTarget);
+                                handleAddToCart(pizza);
+                              }}
+                              className="btn btn-primary btn-sm pl-3.5 pr-4 group/add"
+                            >
+                              <PlusIcon className="w-[18px] h-[18px] transition-transform duration-300 group-hover/add:rotate-90" />
+                              Add to Cart
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </section>
+            ))}
           </div>
         )}
       </div>
